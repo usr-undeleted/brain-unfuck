@@ -41,6 +41,8 @@ uint64_t skip_whitespace(char **ptr) {
     return ret;
 }
 
+
+
 // make sure loops close
 validation_ret validate_buffer(char *p) {
     validation_ret ret = {0}; // returned
@@ -56,11 +58,13 @@ validation_ret validate_buffer(char *p) {
             case '[': {
                 amt++;
                 depth++;
+                ret.line = line;
                 break;
             }
 
             case ']': {
                 depth--;
+                ret.line = line;
                 break;
             }
         }
@@ -71,7 +75,7 @@ validation_ret validate_buffer(char *p) {
     if      (depth > 0)           ret.err = ERR_BUF_UNCLOSED;
     else if (depth < 0)           ret.err = ERR_BUF_TOO_MANY_CLOSE;
     else if (amt > LOOP_STACK_SZ) ret.err = ERR_BUF_CLOSE_BEYOND_LIMIT;
-    ret.line = line;
+    ret.line++; // magical addition
 
     return ret;
 }
