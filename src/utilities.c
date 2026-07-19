@@ -21,11 +21,19 @@ void usage(const char *invoc, const char *msg) {
         "%s compiled at %s on %s for %s (OS)\n"
         "FOSS program forever, licensed under the GPL-V3 license.\n"
         "Hosted on https://github.com/usr-undeleted/brain-unfuck\n"
+        #ifdef DEBUG
+        "\x1b[0;1;33;40mProgram was compiled with debugging enabled.\e[0m\n"
+        #endif
+
+        #ifdef USE_WCHAR
+        "Program was compiled with <wchar.h> included (using wint_t for cell size).\n"
+        #endif
         ,
         invoc,
 
         // time of compilation, CC version, OS
         invoc, __TIMESTAMP__, __VERSION__, OS
+        // debug and wchar
     );
 
     // print error if specified

@@ -17,6 +17,65 @@ uint8_t flag_raw  = 0;
 uint8_t flag_echo = 1;
 uint8_t is_stdin  = 0;
 
+#ifdef DEBUG
+#include <signal.h>
+char **d_argv;
+int    d_argc;
+int d_arg_loc;
+int d_arg_cnt;
+char  *d_file;
+
+// extra for regular exiting
+uint8_t atexit_is_caller = 0;
+void debug_end(int d);
+void atexit_debug(void) {
+    atexit_is_caller = 1;
+    debug_end(0);
+}
+
+// debug dump
+void debug_end(int d) {
+    (void)d;
+
+    write(STDOUT_FILENO, "\x1b[0;1;33;40m", sizeof("\x1b[0;1;33;40m"));
+
+    fprintf(stderr,
+        "\ninfo dump:\n"
+        "- arguments:\n"
+        "\targ_loc:   %d\n"
+        "\targ_count: %d\n"
+        "\targc:      %d\n"
+        "\targv: { ",
+        d_arg_loc, d_arg_cnt, d_argc
+    );
+    // print all args inside curly brackets
+    for (int i = 0; i < d_argc; i++) {
+        fprintf(stderr, "%s%s", d_argv[i], i != d_argc - 1 ? ", " : "");
+    }
+    fprintf(stderr, " }\n");
+
+    // flags
+    fprintf(stderr,
+        "- flags:\n"
+        "\tstdin: %d\n"
+        "\thelp:  %d\n"
+        "\techo:  %d\n"
+        "\tver:   %d\n"
+        "\traw:   %d\n",
+        is_stdin,
+        flag_help,
+        flag_echo,
+        flag_ver,
+        flag_raw
+    );
+
+    write(STDOUT_FILENO, "\x1b[0m", sizeof("\x1b[0m"));
+
+    if (!atexit_is_caller) exit(3);
+}
+
+#endif
+
 // applies terminal options back
 struct termios backup = {0};
 void handle_end(void) {
@@ -24,11 +83,35 @@ void handle_end(void) {
 }
 
 int main (const volatile int argc, const char *argv[]) {
+    #ifdef DEBUG
+    // set atexit
+    if (atexit(atexit_debug) != 0) {
+        fprintf(stderr, "Couldn't set exiting for debugging.\n");
+        DEBUG_ERR_LOC;
+        return ERR_DEBUG;
+    }
+
+    // set signals
+    struct sigaction s;
+    s.sa_handler = debug_end;
+    if (sigaction(SIGINT, &s, NULL) == -1 || sigaction(SIGTERM, &s, NULL)) {
+        fprintf(stderr, "Couldn't set signal for debugging: %s\n", strerror(errno));
+        DEBUG_ERR_LOC;
+        return ERR_DEBUG;
+    }
+
+    #endif
     // check stdin
     if (!isatty(STDIN_FILENO)) is_stdin = 1;
 
+    #ifdef DEBUG
+    d_argv = (char **)argv;
+    d_argc = argc;
+    #endif
+
     if (argc < 2 && !is_stdin) {
         usage(argv[0], "Not enough arguments");
+        DEBUG_ERR_LOC;
         return 1;
     }
 
@@ -40,15 +123,17 @@ int main (const volatile int argc, const char *argv[]) {
         if (flag_val.char_idx) {
             // chars
             usage(argv[0], NULL);
-            fprintf(stderr, "\nError: Unknown flag (%s -> %c)!\n",
+            fprintf(stderr, "\nError: Unknown flag %s -> %c!\n",
                 argv[flag_val.argv_idx], argv[flag_val.argv_idx][flag_val.char_idx]);
+            DEBUG_ERR_LOC;
             return ERR_USER;
 
         } else {
             // single string
             usage(argv[0], NULL);
-            fprintf(stderr, "\nError: Unknown flag (%s)!\n",
+            fprintf(stderr, "\nError: Unknown flag %s!\n",
                 argv[flag_val.argv_idx]);
+            DEBUG_ERR_LOC;
             return ERR_USER;
         }
     }
@@ -77,8 +162,15 @@ int main (const volatile int argc, const char *argv[]) {
         }
     }
 
+    #ifdef DEBUG
+    d_arg_cnt = arg_count;
+    d_arg_loc = arg_loc;
+    #endif
+
     if (arg_loc == 0 && !is_stdin) {
         usage(argv[0], "No file provided");
+        DEBUG_ERR_LOC;
+
         return ERR_USER;
     }
 
@@ -89,6 +181,7 @@ int main (const volatile int argc, const char *argv[]) {
         :
             // regular
             usage(argv[0], "Too many files provided ");
+        DEBUG_ERR_LOC;
         return ERR_USER;
     }
 
@@ -101,6 +194,7 @@ int main (const volatile int argc, const char *argv[]) {
         // open file descriptor
         if ((fd = open(argv[arg_loc], O_RDONLY)) == -1) {
             fprintf(stderr, "Failed to open file '%s': %s\n", argv[arg_loc], strerror(errno));
+            DEBUG_ERR_LOC;
             return ERR_USER;
         }
 
@@ -108,6 +202,7 @@ int main (const volatile int argc, const char *argv[]) {
         struct stat st;
         if (fstat(fd, &st) == -1) {
             fprintf(stderr, "Failed to get stats on file '%s': %s\n", argv[arg_loc], strerror(errno));
+            DEBUG_ERR_LOC;
             return ERR_CODE;
         }
 
@@ -115,6 +210,7 @@ int main (const volatile int argc, const char *argv[]) {
         int64_t page_size = sysconf(_SC_PAGESIZE);
         if (page_size == -1) {
             fprintf(stderr, "Failed to obtain system page size: %s\n", strerror(errno));
+            DEBUG_ERR_LOC;
             return ERR_CODE;
         }
         m_aligned = (st.st_size + page_size - 1) & ~(page_size - 1); // oooo fancy bitwise!
@@ -123,9 +219,14 @@ int main (const volatile int argc, const char *argv[]) {
         // the file more digest-able for the parser (removing comments)
         if ((file = mmap(0, m_aligned, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)) == MAP_FAILED) {
             fprintf(stderr, "Failed to allocate memory for file '%s': %s\n", argv[arg_loc], strerror(errno));
+            DEBUG_ERR_LOC;
             return ERR_CODE;
         }
     }
+
+    #ifdef DEBUG
+    d_file = file;
+    #endif
 
     // make buffer with no comments
     // deals with stdin automatically
@@ -133,17 +234,20 @@ int main (const volatile int argc, const char *argv[]) {
     if (digest_buf(file, fd, &copy_idx, &stdin)) {
         // pos value = failure
         fprintf(stderr, "Failed to digest buffer: %s\n", strerror(errno));
+        DEBUG_ERR_LOC;
         return ERR_CODE;
     }
     if (is_stdin) file = stdin;
 
     if (!buf_has_bf(file)) {
         fprintf(stderr, "Provided file has no valid brainfuck code.\n");
+        DEBUG_ERR_LOC;
         return ERR_USER;
     }
 
     if (is_stdin && strchr(file, ',')) {
         fprintf(stderr, "User input cannot be used when stdin is provided (remove commas from code).\n");
+        DEBUG_ERR_LOC;
         return ERR_USER;
     }
 
@@ -157,16 +261,19 @@ int main (const volatile int argc, const char *argv[]) {
         switch (val.err) {
             case ERR_BUF_TOO_MANY_CLOSE: {
                 fprintf(stderr, "Too many closing brackets.");
+                DEBUG_ERR_LOC;
                 break;
             }
 
             case ERR_BUF_UNCLOSED: {
                 fprintf(stderr, "Too many opening brackets.");
+                DEBUG_ERR_LOC;
                 break;
             }
 
             case ERR_BUF_CLOSE_BEYOND_LIMIT: {
                 fprintf(stderr, "Input file has more loops than can be handled. Sorry!");
+                DEBUG_ERR_LOC;
                 break;
             }
         }
@@ -179,6 +286,7 @@ int main (const volatile int argc, const char *argv[]) {
     // set locale for unicode printing
     if (setlocale(LC_ALL, "") == NULL) {
         fprintf(stderr, "Failed to set locale for unicode printing.\n");
+        DEBUG_ERR_LOC;
         return ERR_CODE;
     }
     #endif
@@ -190,9 +298,15 @@ int main (const volatile int argc, const char *argv[]) {
         // populate backup and set backup
         if (tcgetattr(STDERR_FILENO, &backup) == -1) {
             fprintf(stderr, "Failed to get old terminal definitions: %s\n", strerror(errno));
+            DEBUG_ERR_LOC;
             return ERR_CODE;
         }
-        atexit(handle_end);
+
+        if (atexit(handle_end) != 0) {
+            fprintf(stderr, "Failed to set up backup function:\n");
+            DEBUG_ERR_LOC;
+            return ERR_CODE;
+        }
 
         // populate new options
         new_term = backup;
@@ -206,6 +320,7 @@ int main (const volatile int argc, const char *argv[]) {
         }
         if (tcsetattr(STDERR_FILENO, TCSAFLUSH, &new_term) == -1) {
             fprintf(stderr, "Failed to set new terminal definitions: %s\n", strerror(errno));
+            DEBUG_ERR_LOC;
             return ERR_CODE;
         }
     }
@@ -333,8 +448,10 @@ int main (const volatile int argc, const char *argv[]) {
         #ifdef DEBUG
         #ifdef USE_WCHAR
         printf("\x1b[0;1;32;40m%lc\x1b[0m", *array_ptr);
+        DEBUG_ERR_LOC;
         #else
         printf("\x1b[0;1;32;40m%c\x1b[0m", *array_ptr);
+        DEBUG_ERR_LOC;
         #endif // wchar
         #endif // debug
 
@@ -346,17 +463,19 @@ int main (const volatile int argc, const char *argv[]) {
         // close mmap() allocated file
         if (munmap(file, m_aligned) == -1) {
             fprintf(stderr, "Failed to close mapped memory: %s\n", strerror(errno));
+            DEBUG_ERR_LOC;
             return ERR_CODE;
         }
 
         // close file descriptor
         if (close(fd) == -1) {
             fprintf(stderr, "Failed to close file '%s': %s\n", argv[arg_loc], strerror(errno));
+            DEBUG_ERR_LOC;
             return ERR_CODE;
         }
     } else {
         free(file);
     }
 
-    return 0;
+    return SUCCESS;
 }

@@ -75,11 +75,24 @@ typedef struct {
 validation_ret validate_buffer(char *p);
 unsigned char buf_has_bf(const char *buf);
 
-#define SUCCESS  0
+#define SUCCESS   0
 // mistake made by code
-#define ERR_CODE 1
+#define ERR_CODE  1
 // mistake made by user
-#define ERR_USER 2
+#define ERR_USER  2
+// debugging
+#define ERR_DEBUG 3
+
+// file_name:N error
+#ifdef DEBUG
+// shows a message showing the source file and line
+// ALWAYS put it right before returning/exiting
+#define DEBUG_ERR_LOC fprintf(stderr, "\x1b[0;1;33;40mLocated at: %s:%d\x1b[0m\n", __FILE_NAME__, __LINE__)
+#else
+// ignore, only matters when DEBUG is set
+// you should still ALWAYS put it right before returning/exiting
+#define DEBUG_ERR_LOC do {} while(0)
+#endif
 
 // flag stuff
 #define FLAGS         "hvrE"
