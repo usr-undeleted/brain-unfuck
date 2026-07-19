@@ -134,12 +134,12 @@ flag_failure manage_flags(const int argc, const char **argv) {
                 if (strchr(FLAGS, argv[i][j])) {
                     switch (argv[i][j]) {
                         case 'h': {
-                            flag_ver  = 1;
+                            flag_help = 1;
                             break;
                         }
 
                         case 'v': {
-                            flag_help = 1;
+                            flag_ver  = 1;
                             break;
                         }
 
