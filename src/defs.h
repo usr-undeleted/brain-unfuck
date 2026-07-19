@@ -32,6 +32,26 @@
 
 // strive for 2mb or 4mb
 #define BF_ARRAY_SZ    2 << 18
+
+// type for array
+#ifndef USE_WCHAR
+typedef uint8_t array_t;
+
+#define GETC(v) getchar()
+#define PUTC(c) putchar(c)
+
+#else
+#include <locale.h>
+#include <wchar.h>
+typedef wint_t array_t;
+
+#define GETC(v) getwchar()
+#define PUTC(x) printf("%lc", x)
+#endif
+
+// find ']' for '['
+char *find_closing(char *p);
+
 // loop pointers need to be stored somewhere, so we make a "stack"
 // this will store 8192 entries (65kb)
 #define LOOP_STACK_SZ  2 << 12

@@ -5,7 +5,7 @@ This turned out to actually be fun, so I'll probably give this a bit more suppor
 
 (mostly) following `https://esolangs.org/wiki/Brainfuck#Conventions`, the interpreter follows these conventions:
 1. '#'s will comment out the entire next line.
-2. The array is 524288 cells big, each cell being of sizeof(wchar_t) (usually 4 bytes on unix-like). The signed type is entirely dependent on your system's wchar.h
+2. The array is 524288 cells big, each cell being by default unsigned 8 bits, but the type wint_t (for unicode printing on cells) can be enabled with the macro USE_WCHAR
 3. The pointer will wrap around the array, meaning that going left at the start will lead you to the end, or going right at the end will leader you to the start.
 4. Writing 10 to a cell and printing it will always lead to a new character.
 5. Unicode characters may be written.

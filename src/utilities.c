@@ -78,9 +78,9 @@ validation_ret validate_buffer(char *p) {
         p++;
     }
 
-    if      (depth > 0)           ret.err = ERR_BUF_UNCLOSED;
-    else if (depth < 0)           ret.err = ERR_BUF_TOO_MANY_CLOSE;
-    else if (amt > LOOP_STACK_SZ) ret.err = ERR_BUF_CLOSE_BEYOND_LIMIT;
+    if      (depth > 0)            ret.err = ERR_BUF_UNCLOSED;
+    else if (depth < 0)            ret.err = ERR_BUF_TOO_MANY_CLOSE;
+    else if (amt >= LOOP_STACK_SZ) ret.err = ERR_BUF_CLOSE_BEYOND_LIMIT;
     ret.line++; // magical addition
 
     return ret;
@@ -151,4 +151,21 @@ flag_failure manage_flags(const int argc, const char **argv) {
     }
 
     return ret;
+}
+
+// find the ']' for a '['
+char *find_closing(char *p) {
+    uint64_t depth = 0;
+    if (*p == '[') p++;
+
+    while (*p) {
+        if      (*p == '[') depth++;
+        else if (*p == ']') {
+            if (depth) depth--;
+            else return p;
+        }
+        p++;
+    }
+
+    return NULL;
 }
