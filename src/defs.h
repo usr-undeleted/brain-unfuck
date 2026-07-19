@@ -33,8 +33,8 @@
 // this will store 8192 entries (65kb)
 #define LOOP_STACK_SZ  2 << 12
 
-void usage(const char *invoc, const char *msg);
-void skip_whitespace(char **ptr);
+void     usage          (const char *invoc, const char *msg);
+uint64_t skip_whitespace(char **ptr);
 
 // buffer validation
 #define ERR_BUF_UNCLOSED           1 << 0
@@ -45,10 +45,8 @@ void skip_whitespace(char **ptr);
 typedef struct {
     // error code, keep at 0 for success
     unsigned char err;
-    // opening bracket
-    char       *o_ptr;
-    // closing bracket
-    char       *c_ptr;
+    // line where theres a syntax fail
+    uint64_t     line;
 } validation_ret;
 
 validation_ret validate_buffer(char *p);

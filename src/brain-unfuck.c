@@ -81,31 +81,7 @@ int main (const volatile int argc, const char *argv[]) {
 
     validation_ret val = validate_buffer(file);
     if (val.err) {
-        fprintf(stderr, "Can't execute: %s\n",
-            val.err == ERR_BUF_TOO_MANY_CLOSE ?
-
-            "Too many closing brackets."
-
-            :
-
-            val.err == ERR_BUF_UNCLOSED ?
-
-            "Too many opening brackets."
-
-            :
-
-            val.err == ERR_BUF_CLOSE_BEYOND_LIMIT ?
-
-            "Input file has more loops than can be handled. Sorry!"
-
-            :
-
-            // total check failure
-            "I don't know!!"
-
-        );
-
-        fprintf(stderr, "Can't execute: ");
+        fprintf(stderr, "Can't execute (line %ld): ", val.line);
         switch (val.err) {
             case ERR_BUF_TOO_MANY_CLOSE: {
                 fprintf(stderr, "Too many closing brackets.");

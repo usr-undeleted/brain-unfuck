@@ -32,35 +32,34 @@ void usage(const char *invoc, const char *msg) {
 }
 
 // puts pointer on the character right after a whitespace
-void skip_whitespace(char **ptr) {
-    while (isspace(**ptr) || !strchr(BF_ALPHABET, **ptr)) (*ptr)++;
+uint64_t skip_whitespace(char **ptr) {
+    uint64_t ret = 0;
+    while (isspace(**ptr) || !strchr(BF_ALPHABET, **ptr)) {
+        if (**ptr == '\n') ret++;
+        (*ptr)++;
+    }
+    return ret;
 }
 
 // make sure loops close
 validation_ret validate_buffer(char *p) {
     validation_ret ret = {0}; // returned
+    uint64_t      line = 0;   // what line pointer is in
     uint16_t       amt = 0;   // how many openers
     int64_t      depth = 0;   // how deep are we
 
     while (*p) {
-        skip_whitespace(&p);
+        // add lines to counter
+        line += skip_whitespace(&p);
 
         switch (*p) {
             case '[': {
-                if (depth == 0) {
-                    ret.o_ptr = p;
-                }
-
                 amt++;
                 depth++;
                 break;
             }
 
             case ']': {
-                if (depth > -1) {
-                    ret.c_ptr = p;
-                }
-
                 depth--;
                 break;
             }
@@ -72,6 +71,7 @@ validation_ret validate_buffer(char *p) {
     if      (depth > 0)           ret.err = ERR_BUF_UNCLOSED;
     else if (depth < 0)           ret.err = ERR_BUF_TOO_MANY_CLOSE;
     else if (amt > LOOP_STACK_SZ) ret.err = ERR_BUF_CLOSE_BEYOND_LIMIT;
+    ret.line = line;
 
     return ret;
 }
