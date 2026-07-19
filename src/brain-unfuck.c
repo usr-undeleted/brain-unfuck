@@ -448,10 +448,8 @@ int main (const volatile int argc, const char *argv[]) {
         #ifdef DEBUG
         #ifdef USE_WCHAR
         printf("\x1b[0;1;32;40m%lc\x1b[0m", *array_ptr);
-        DEBUG_ERR_LOC;
         #else
         printf("\x1b[0;1;32;40m%c\x1b[0m", *array_ptr);
-        DEBUG_ERR_LOC;
         #endif // wchar
         #endif // debug
 
