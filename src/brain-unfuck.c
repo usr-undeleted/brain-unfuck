@@ -101,10 +101,30 @@ int main (const volatile int argc, const char *argv[]) {
     }
     uint64_t m_aligned = (st.st_size + page_size - 1) & ~(page_size - 1); // oooo fancy bitwise!
 
+    // make a mmap() of file, copy the contents over, then make
+    // the file more digest-able for the parser (removing comments)
     char *file;
-    if ((file = mmap(0, m_aligned, PROT_READ, MAP_FILE | MAP_PRIVATE, fd, 0)) == NULL) {
-        fprintf(stderr, "Failed to map file '%s': %s\n", argv[arg_loc], strerror(errno));
+    if ((file = mmap(0, m_aligned, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)) == NULL) {
+        fprintf(stderr, "Failed to allocate memory for file '%s': %s\n", argv[arg_loc], strerror(errno));
         return ERR_CODE;
+    }
+    // copy over contents
+    // go trough char by char, only including ones we are gonna use
+    uint64_t copy_idx = 0;
+    char ch;
+    read(fd, &ch, 1);
+    while (1) {
+        int64_t r = read(fd, &ch, 1);
+
+        if (r == -1) {
+            fprintf(stderr, "Failed to read file '%s': %s\n", argv[arg_loc], strerror(errno));
+            return ERR_CODE;
+
+        } else if (r == 0 || ch == EOF) break;
+
+        if (strchr(BF_ALPHABET, ch)) {
+            file[copy_idx++] = ch;
+        }
     }
 
     if (file == MAP_FAILED || m_aligned == 0 || !buf_has_bf(file)) {
@@ -152,8 +172,6 @@ int main (const volatile int argc, const char *argv[]) {
 
     // main loop
     while (1) {
-        skip_whitespace(&file_ptr);
-
         // i guess this is needed..?
         if (file_ptr > (file + st.st_size) || file_ptr < file) break;
 
