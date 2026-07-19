@@ -35,7 +35,13 @@ void usage(const char *invoc, const char *msg) {
 uint64_t skip_whitespace(char **ptr) {
     uint64_t ret = 0;
     while (isspace(**ptr) || !strchr(BF_ALPHABET, **ptr)) {
+        // comments
+        if (**ptr == '#') *ptr = strchr(*ptr, '\n');
+
+        // count lines
         if (**ptr == '\n') ret++;
+
+        // increment
         (*ptr)++;
     }
     return ret;
