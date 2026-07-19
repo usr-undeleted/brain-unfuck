@@ -1,9 +1,11 @@
-#include "defs.h"
-#include "os_defs.h"
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <ctype.h>
+#include "os_defs.h"
+#include "defs.h"
 
 void usage(const char *invoc, const char *msg) {
     fprintf(stderr,
@@ -105,16 +107,16 @@ flag_failure manage_flags(const int argc, const char **argv) {
         if (!strncmp(argv[i], "--", 2)) {
             // strings, add 2 to argv
 
-            if        (strcmp(argv[i] + 2, "help")) {
-                flag_help = 1;
-
-            } else if (strcmp(argv[i] + 2, "version")) {
+            if        (!strcmp(argv[i] + 2, "help")) {
                 flag_ver  = 1;
 
-            } else if (strcmp(argv[i] + 2, "raw")) {
+            } else if (!strcmp(argv[i] + 2, "version")) {
+                flag_help = 1;
+
+            } else if (!strcmp(argv[i] + 2, "raw")) {
                 flag_raw  = 1;
 
-            } else if (strcmp(argv[i] + 2, "no-echo")) {
+            } else if (!strcmp(argv[i] + 2, "no-echo")) {
                 flag_echo = 0;
 
             } else {
@@ -131,10 +133,6 @@ flag_failure manage_flags(const int argc, const char **argv) {
 
                 if (strchr(FLAGS, argv[i][j])) {
                     switch (argv[i][j]) {
-                        // i dont know why the HELL the logic is reversed
-                        // if you're a wizard or something, can you remove
-                        // the curse this code has to fix this? (the logic
-                        // is reversed on help and version values)
                         case 'h': {
                             flag_ver  = 1;
                             break;
@@ -183,4 +181,54 @@ char *find_closing(char *p) {
     }
 
     return NULL;
+}
+
+// form digest-able buffer
+uint8_t digest_buf(char *buf, int fd, uint64_t *copy_idx, char **stdin) {
+    char ch = 0;
+    //uint64_t stdin_allocs = 1;
+    uint64_t alloc_cnt = 0;
+    char *alloc        = NULL;
+    if (fd == STDIN_FILENO) {
+        // allocate one page at a time
+        alloc = calloc(STDIN_BUF_PAGE_SZ * ++alloc_cnt, sizeof(char));
+        if (alloc == NULL) return 1;
+    }
+
+    while (1) {
+        int64_t r = read(fd, &ch, 1);
+
+        if (r == -1) return 1;
+
+        // comments
+        if (ch == '#') {
+            while (ch != '\n' && ch != EOF) {
+                if ((r = read(fd, &ch, 1)) == -1) return 1;
+            }
+            // loop ends at newline, so we move again
+            if ((r = read(fd, &ch, 1)) == -1) return 1;
+        }
+
+        if (r == 0 || ch == EOF) break;
+
+        if (strchr(BF_ALPHABET, ch)) {
+            if (fd == STDIN_FILENO) {
+                // allocate for stdin
+                if (*copy_idx >= (STDIN_BUF_PAGE_SZ * alloc_cnt)) {
+                    alloc = realloc(alloc, STDIN_BUF_PAGE_SZ * ++alloc_cnt);
+                    if (alloc == NULL) return 1;
+                }
+
+                alloc[(*copy_idx)++] = ch;
+
+            } else {
+                buf[(*copy_idx)++] = ch;
+
+            }
+        }
+    }
+
+    *stdin = alloc;
+
+    return 0;
 }
