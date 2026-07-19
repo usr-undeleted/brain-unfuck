@@ -105,16 +105,16 @@ flag_failure manage_flags(const int argc, const char **argv) {
         if (!strncmp(argv[i], "--", 2)) {
             // strings, add 2 to argv
 
-            if        (strcmp(argv[i] + 2, "help")) {
+            if        (!strcmp(argv[i] + 2, "help")) {
                 flag_help = 1;
 
-            } else if (strcmp(argv[i] + 2, "version")) {
+            } else if (!strcmp(argv[i] + 2, "version")) {
                 flag_ver  = 1;
 
-            } else if (strcmp(argv[i] + 2, "raw")) {
+            } else if (!strcmp(argv[i] + 2, "raw")) {
                 flag_raw  = 1;
 
-            } else if (strcmp(argv[i] + 2, "no-echo")) {
+            } else if (!strcmp(argv[i] + 2, "no-echo")) {
                 flag_echo = 0;
 
             } else {
@@ -131,17 +131,13 @@ flag_failure manage_flags(const int argc, const char **argv) {
 
                 if (strchr(FLAGS, argv[i][j])) {
                     switch (argv[i][j]) {
-                        // i dont know why the HELL the logic is reversed
-                        // if you're a wizard or something, can you remove
-                        // the curse this code has to fix this? (the logic
-                        // is reversed on help and version values)
                         case 'h': {
-                            flag_ver  = 1;
+                            flag_help = 1;
                             break;
                         }
 
                         case 'v': {
-                            flag_help = 1;
+                            flag_ver = 1;
                             break;
                         }
 
