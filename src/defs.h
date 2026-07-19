@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-// definitions follow https://esolangs.org/wiki/Brainfuck#Conventions
+// definitions follow https://esolangs.org/wiki/Brainfuck#Conventions, mostly
 
 // memory should be 524288 (2 << 18) wchar_t cells, forming a 2mb buffer (2097152 bytes).
 // sign-type and size are up to <wchar.h>
@@ -27,11 +27,31 @@
 // ',':         read user input (single char)
 // '+' and '-': read user input
 
-//  strive for 2mb or 4mb
-#define BF_ARRAY_SZ 2 << 18
+// strive for 2mb or 4mb
+#define BF_ARRAY_SZ    2 << 18
+// loop pointers need to be stored somewhere, so we make a "stack"
+// this will store 8192 entries (65kb)
+#define LOOP_STACK_SZ  2 << 12
 
 void usage(const char *invoc, const char *msg);
 void skip_whitespace(char **ptr);
+
+// buffer validation
+#define ERR_BUF_UNCLOSED           1 << 0
+#define ERR_BUF_TOO_MANY_CLOSE     1 << 1
+#define ERR_BUF_CLOSE_BEYOND_LIMIT 1 << 2
+
+// returned struct to diagnose error
+typedef struct {
+    // error code, keep at 0 for success
+    unsigned char err;
+    // opening bracket
+    char       *o_ptr;
+    // closing bracket
+    char       *c_ptr;
+} validation_ret;
+
+validation_ret validate_buffer(char *p);
 
 #define SUCCESS  0
 // mistake made by code

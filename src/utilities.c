@@ -35,3 +35,43 @@ void usage(const char *invoc, const char *msg) {
 void skip_whitespace(char **ptr) {
     while (isspace(**ptr) || !strchr(BF_ALPHABET, **ptr)) (*ptr)++;
 }
+
+// make sure loops close
+validation_ret validate_buffer(char *p) {
+    validation_ret ret = {0}; // returned
+    uint16_t       amt = 0;   // how many openers
+    int64_t      depth = 0;   // how deep are we
+
+    while (*p) {
+        skip_whitespace(&p);
+
+        switch (*p) {
+            case '[': {
+                if (depth == 0) {
+                    ret.o_ptr = p;
+                }
+
+                amt++;
+                depth++;
+                break;
+            }
+
+            case ']': {
+                if (depth > -1) {
+                    ret.c_ptr = p;
+                }
+
+                depth--;
+                break;
+            }
+        }
+
+        p++;
+    }
+
+    if      (depth > 0)           ret.err = ERR_BUF_UNCLOSED;
+    else if (depth < 0)           ret.err = ERR_BUF_TOO_MANY_CLOSE;
+    else if (amt > LOOP_STACK_SZ) ret.err = ERR_BUF_CLOSE_BEYOND_LIMIT;
+
+    return ret;
+}

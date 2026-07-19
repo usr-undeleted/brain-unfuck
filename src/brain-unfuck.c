@@ -1,7 +1,6 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <string.h>
-#include <signal.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -13,13 +12,6 @@
 // 1: stdin support
 // 2: extensions (such as exiting the program)
 
-// trigger on ctrl-c
-volatile uint8_t loop = 1;
-void handler(int d) {
-    (void)d;
-    loop = 0;
-}
-
 int main (const volatile int argc, const char *argv[]) {
     if (argc < 2) {
         usage(argv[0], "Not enough arguments");
@@ -27,8 +19,8 @@ int main (const volatile int argc, const char *argv[]) {
     }
 
     // validate invocation
-    volatile int arg_count = 0; // number of file names provided
-    volatile int arg_loc   = 0; // argument with file name
+    int arg_count = 0; // number of file names provided
+    int arg_loc   = 0; // argument with file name
 
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-') {
@@ -87,27 +79,66 @@ int main (const volatile int argc, const char *argv[]) {
         return ERR_CODE;
     }
 
-    // main loop
-    wchar_t array[BF_ARRAY_SZ] = {0};   // main loop
-    wchar_t *array_ptr         = array; // user pointer
-    char    *file_ptr          = file;  // the file pointer
+    validation_ret val = validate_buffer(file);
+    if (val.err) {
+        fprintf(stderr, "Can't execute: %s\n",
+            val.err == ERR_BUF_TOO_MANY_CLOSE ?
 
-    (void)array_ptr;
-    (void)file_ptr;
+            "Too many closing brackets."
 
-    // set handlers
-    struct sigaction sa;
-    sa.sa_handler = handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART;
+            :
 
-    if (sigaction(SIGINT, &sa, NULL) == -1) {
-        fprintf(stderr, "Failed to set signal SIGINT: %s\n", strerror(errno));
-        return ERR_CODE;
+            val.err == ERR_BUF_UNCLOSED ?
+
+            "Too many opening brackets."
+
+            :
+
+            val.err == ERR_BUF_CLOSE_BEYOND_LIMIT ?
+
+            "Input file has more loops than can be handled. Sorry!"
+
+            :
+
+            // total check failure
+            "I don't know!!"
+
+        );
+
+        fprintf(stderr, "Can't execute: ");
+        switch (val.err) {
+            case ERR_BUF_TOO_MANY_CLOSE: {
+                fprintf(stderr, "Too many closing brackets.");
+                break;
+            }
+
+            case ERR_BUF_UNCLOSED: {
+                fprintf(stderr, "Too many opening brackets.");
+                break;
+            }
+
+            case ERR_BUF_CLOSE_BEYOND_LIMIT: {
+                fprintf(stderr, "Input file has more loops than can be handled. Sorry!");
+                break;
+            }
+        }
+        putchar('\n');
+
+        return ERR_USER;
     }
 
-    while (loop) {
-        //skip_whitespace(&file_ptr);
+
+    // store pointers to loops on a stack
+    uint16_t loop_idx                  = 0;     // how deep we are on loops
+    char    *loop_stack[LOOP_STACK_SZ] = {0};   // loop pointers
+
+    wchar_t  array[BF_ARRAY_SZ]        = {0};   // main loop
+    wchar_t *array_ptr                 = array; // user pointer
+    char    *file_ptr                  = file;  // the file pointer
+
+    // main loop
+    while (1) {
+        skip_whitespace(&file_ptr);
 
         // i guess this is needed..?
         if (file_ptr > (file + st.st_size) || file_ptr < file) break;
@@ -120,22 +151,60 @@ int main (const volatile int argc, const char *argv[]) {
             }
 
             case '-': {
+                // decrement
                 (*array_ptr)--;
                 break;
             }
 
             case '<': {
+                // move pointer left
                 array_ptr--;
                 break;
             }
 
             case '>': {
+                // move pointer right
                 array_ptr++;
                 break;
             }
 
             case '.': {
+                // print cell
                 putwchar(*array_ptr);
+                break;
+            }
+
+            case ',': {
+                // read user input
+                *array_ptr = getwchar();
+                break;
+            }
+
+            case '[': {
+                // store loop
+                loop_stack[loop_idx++] = file_ptr;
+                break;
+            }
+
+            case ']': {
+                // end loop
+
+                if (
+                    // define when to end loop
+                    #ifdef END_LOOP_ON_NEG
+                    *array_ptr
+                    #else
+                    *array_ptr != 0
+                    #endif
+
+                    ) {
+
+                    file_ptr = loop_stack[loop_idx - 1];
+                } else {
+                    // cell is negative, keep going
+                    loop_idx--;
+                }
+
                 break;
             }
 
