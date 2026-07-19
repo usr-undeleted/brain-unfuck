@@ -83,3 +83,14 @@ validation_ret validate_buffer(char *p) {
 
     return ret;
 }
+
+unsigned char buf_has_bf(const char *buf) {
+    char *str = BF_ALPHABET;
+
+    while (*str) {
+        if (strchr(buf, *str)) return 1;
+        str++;
+    }
+
+    return 0;
+}

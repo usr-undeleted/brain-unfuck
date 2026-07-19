@@ -57,6 +57,7 @@ typedef struct {
 } validation_ret;
 
 validation_ret validate_buffer(char *p);
+unsigned char buf_has_bf(const char *buf);
 
 #define SUCCESS  0
 // mistake made by code

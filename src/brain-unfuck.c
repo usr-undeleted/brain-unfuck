@@ -1,5 +1,6 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <limits.h>
 #include <string.h>
 #include <locale.h>
 #include <unistd.h>
@@ -78,6 +79,11 @@ int main (const volatile int argc, const char *argv[]) {
     if ((file = mmap(0, m_aligned, PROT_READ, MAP_FILE | MAP_PRIVATE, fd, 0)) == NULL) {
         fprintf(stderr, "Failed to map file '%s': %s\n", argv[arg_loc], strerror(errno));
         return ERR_CODE;
+    }
+
+    if (file == MAP_FAILED || m_aligned == 0 || !buf_has_bf(file)) {
+        fprintf(stderr, "Provided file has no valid brainfuck code.\n");
+        return ERR_USER;
     }
 
     validation_ret val = validate_buffer(file);
