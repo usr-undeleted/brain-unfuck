@@ -82,7 +82,7 @@ unsigned char buf_has_bf(const char *buf);
 #define ERR_USER 2
 
 // flag stuff
-#define FLAGS         "hv"
+#define FLAGS         "hvrE"
 
 // on success, set argv_idx to 0
 // on unknown full string flag, keep char_idx at 0
@@ -95,8 +95,10 @@ typedef struct {
 } flag_failure;
 
 // global flags
-extern uint8_t flag_help;
-extern uint8_t flag_ver;
+extern uint8_t flag_help; // help
+extern uint8_t flag_echo; // wether to echo or not
+extern uint8_t flag_ver;  // version
+extern uint8_t flag_raw;  // raw term mode
 
 // excludes argv[0] on its own, hand it the real argc and argv
 flag_failure manage_flags(const int argc, const char **argv);

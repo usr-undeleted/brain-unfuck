@@ -1,8 +1,11 @@
+#include <sys/termios.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <limits.h>
 #include <string.h>
+#include <termios.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -13,6 +16,14 @@
 
 uint8_t flag_help = 0;
 uint8_t flag_ver  = 0;
+uint8_t flag_raw  = 0;
+uint8_t flag_echo = 1;
+
+// applies terminal options back
+struct termios backup = {0};
+void handle_end(void) {
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &backup);
+}
 
 int main (const volatile int argc, const char *argv[]) {
     if (argc < 2) {
@@ -111,7 +122,6 @@ int main (const volatile int argc, const char *argv[]) {
     uint64_t copy_idx = 0;
     uint8_t      fail = 0;
     char           ch = 0;
-
     while (1) {
         int64_t r = read(fd, &ch, 1);
 
@@ -178,6 +188,33 @@ int main (const volatile int argc, const char *argv[]) {
         return ERR_CODE;
     }
     #endif
+
+    // incase the user specified terminal-changing options
+    if (flag_raw || !flag_echo) {
+        // set up new terminal options
+        struct termios new_term = {0};
+        // populate backup and set backup
+        if (tcgetattr(STDIN_FILENO, &backup) == -1) {
+            fprintf(stderr, "Failed to get old terminal definitions: %s\n", strerror(errno));
+            return ERR_CODE;
+        }
+        atexit(handle_end);
+
+        // populate new options
+        new_term = backup;
+        if (flag_raw) {
+            new_term.c_lflag    &= ~(ICANON); // set to raw
+            new_term.c_cc[VMIN]  = 1;         // get one char at a time
+            new_term.c_cc[VTIME] = 0;         // remove all delay
+        }
+        if (!flag_echo) {
+            new_term.c_lflag    &= ~(ECHO);   // clear echoding
+        }
+        if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &new_term) == -1) {
+            fprintf(stderr, "Failed to set new terminal definitions: %s\n", strerror(errno));
+            return ERR_CODE;
+        }
+    }
 
     // store pointers to loops on a stack
     uint16_t loop_idx                  = 0;     // how deep we are on loops

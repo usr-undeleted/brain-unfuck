@@ -10,17 +10,16 @@ void usage(const char *invoc, const char *msg) {
         "usage:\n"
         "\t%s <file>\n\n"
 
-        "options:\n"
-        "\t%s --help (or) -h: pull up this help message.\n"
-        "\t%s --version (or) -v: show version message. you might not want it :p\n\n"
+        "flags:\n"
+        "\t--help    (or) -h: pull up this help message.\n"
+        "\t--version (or) -v: show version message. you might not want it :p\n"
+        "\t--raw     (or) -r: enable raw terminal mode (user input is immediately processed).\n"
+        "\t--no-echo (or) -E: disable the visibility of user input.\n\n"
 
         "%s compiled at %s on %s for %s (OS)\n"
         "FOSS program forever, licensed under the GPL-V3 license.\n"
         "Hosted on https://github.com/usr-undeleted/brain-unfuck\n"
         ,
-        invoc,
-
-        invoc,
         invoc,
 
         // time of compilation, CC version, OS
@@ -112,6 +111,12 @@ flag_failure manage_flags(const int argc, const char **argv) {
             } else if (strcmp(argv[i] + 2, "version")) {
                 flag_ver  = 1;
 
+            } else if (strcmp(argv[i] + 2, "raw")) {
+                flag_raw  = 1;
+
+            } else if (strcmp(argv[i] + 2, "no-echo")) {
+                flag_echo = 0;
+
             } else {
                 ret.argv_idx = i;
                 ret.char_idx = 0;
@@ -131,12 +136,22 @@ flag_failure manage_flags(const int argc, const char **argv) {
                         // the curse this code has to fix this? (the logic
                         // is reversed on help and version values)
                         case 'h': {
-                            flag_ver = 1;
+                            flag_ver  = 1;
                             break;
                         }
 
                         case 'v': {
-                            flag_help  = 1;
+                            flag_help = 1;
+                            break;
+                        }
+
+                        case 'E': {
+                            flag_echo = 0;
+                            break;
+                        }
+
+                        case 'r': {
+                            flag_raw  = 1;
                             break;
                         }
                     }
