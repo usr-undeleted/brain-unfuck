@@ -1,6 +1,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <locale.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -103,6 +104,11 @@ int main (const volatile int argc, const char *argv[]) {
         return ERR_USER;
     }
 
+    // set locale for unicode printing
+    if (setlocale(LC_ALL, "") == NULL) {
+        fprintf(stderr, "Failed to set locale for unicode printing.\n");
+        return ERR_CODE;
+    }
 
     // store pointers to loops on a stack
     uint16_t loop_idx                  = 0;     // how deep we are on loops
