@@ -24,14 +24,6 @@ void handle_end(void) {
 }
 
 int main (const volatile int argc, const char *argv[]) {
-    // check stdin
-    if (!isatty(STDIN_FILENO)) is_stdin = 1;
-
-    if (argc < 2 && !is_stdin) {
-        usage(argv[0], "Not enough arguments");
-        return 1;
-    }
-
     // form flags
     flag_failure flag_val = manage_flags(argc, argv);
 
@@ -53,14 +45,14 @@ int main (const volatile int argc, const char *argv[]) {
         }
     }
 
-    // consume flags
+    // consume flags before requiring input
     if (flag_help) {
         usage(argv[0], NULL);
         return 0;
     }
 
     if (flag_ver) {
-        fprintf(stderr, VERSION);
+        fputs(VERSION, stderr);
         return 0;
     }
 
@@ -77,18 +69,17 @@ int main (const volatile int argc, const char *argv[]) {
         }
     }
 
+    // Prefer an explicit file when one is supplied; otherwise consume piped
+    // stdin. This keeps file execution working under non-interactive shells.
+    is_stdin = arg_count == 0 && !isatty(STDIN_FILENO);
+
     if (arg_loc == 0 && !is_stdin) {
         usage(argv[0], "No file provided");
         return ERR_USER;
     }
 
-    if (arg_count > (1 - is_stdin)) {
-        is_stdin ?
-            // stdin
-            usage(argv[0], "Too many files provided (stdin was provided)")
-        :
-            // regular
-            usage(argv[0], "Too many files provided ");
+    if (arg_count > 1) {
+        usage(argv[0], "Too many files provided");
         return ERR_USER;
     }
 
@@ -117,7 +108,9 @@ int main (const volatile int argc, const char *argv[]) {
             fprintf(stderr, "Failed to obtain system page size: %s\n", strerror(errno));
             return ERR_CODE;
         }
-        m_aligned = (st.st_size + page_size - 1) & ~(page_size - 1); // oooo fancy bitwise!
+        // Keep one extra byte for the zero terminator, including when the
+        // input size is exactly page-aligned.
+        m_aligned = (st.st_size + 1 + page_size - 1) & ~(page_size - 1); // oooo fancy bitwise!
 
         // make a mmap() of file, copy the contents over, then make
         // the file more digest-able for the parser (removing comments)
@@ -129,13 +122,13 @@ int main (const volatile int argc, const char *argv[]) {
 
     // make buffer with no comments
     // deals with stdin automatically
-    char *stdin;
-    if (digest_buf(file, fd, &copy_idx, &stdin)) {
+    char *stdin_buf = NULL;
+    if (digest_buf(file, fd, &copy_idx, &stdin_buf)) {
         // pos value = failure
         fprintf(stderr, "Failed to digest buffer: %s\n", strerror(errno));
         return ERR_CODE;
     }
-    if (is_stdin) file = stdin;
+    if (is_stdin) file = stdin_buf;
 
     if (!buf_has_bf(file)) {
         fprintf(stderr, "Provided file has no valid brainfuck code.\n");
@@ -221,7 +214,7 @@ int main (const volatile int argc, const char *argv[]) {
     // main loop
     while (1) {
         // i guess this is needed..?
-        if (file_ptr > (file + copy_idx) || file_ptr < file) break;
+        if (file_ptr >= (file + copy_idx) || file_ptr < file) break;
 
         #ifdef DEBUG
         printf ("\x1b[0;1;34;40m%c\x1b[0m", *file_ptr);

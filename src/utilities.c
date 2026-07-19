@@ -108,10 +108,10 @@ flag_failure manage_flags(const int argc, const char **argv) {
             // strings, add 2 to argv
 
             if        (!strcmp(argv[i] + 2, "help")) {
-                flag_ver  = 1;
+                flag_help = 1;
 
             } else if (!strcmp(argv[i] + 2, "version")) {
-                flag_help = 1;
+                flag_ver  = 1;
 
             } else if (!strcmp(argv[i] + 2, "raw")) {
                 flag_raw  = 1;
@@ -184,39 +184,45 @@ char *find_closing(char *p) {
 }
 
 // form digest-able buffer
-uint8_t digest_buf(char *buf, int fd, uint64_t *copy_idx, char **stdin) {
+uint8_t digest_buf(char *buf, int fd, uint64_t *copy_idx, char **stdin_buf) {
     char ch = 0;
-    //uint64_t stdin_allocs = 1;
-    uint64_t alloc_cnt = 0;
-    char *alloc        = NULL;
+    uint64_t capacity = 0;
+    char *alloc       = NULL;
     if (fd == STDIN_FILENO) {
         // allocate one page at a time
-        alloc = calloc(STDIN_BUF_PAGE_SZ * ++alloc_cnt, sizeof(char));
+        capacity = STDIN_BUF_PAGE_SZ;
+        alloc = calloc(capacity, sizeof(char));
         if (alloc == NULL) return 1;
     }
 
-    while (1) {
-        int64_t r = read(fd, &ch, 1);
-
-        if (r == -1) return 1;
+    ssize_t r;
+    while ((r = read(fd, &ch, 1)) > 0) {
 
         // comments
         if (ch == '#') {
-            while (ch != '\n' && ch != EOF) {
-                if ((r = read(fd, &ch, 1)) == -1) return 1;
+            while ((r = read(fd, &ch, 1)) > 0 && ch != '\n') {
+                // discard the rest of the comment
             }
-            // loop ends at newline, so we move again
-            if ((r = read(fd, &ch, 1)) == -1) return 1;
+            if (r < 0) {
+                free(alloc);
+                return 1;
+            }
+            if (r == 0) break;
+            continue;
         }
-
-        if (r == 0 || ch == EOF) break;
 
         if (strchr(BF_ALPHABET, ch)) {
             if (fd == STDIN_FILENO) {
-                // allocate for stdin
-                if (*copy_idx >= (STDIN_BUF_PAGE_SZ * alloc_cnt)) {
-                    alloc = realloc(alloc, STDIN_BUF_PAGE_SZ * ++alloc_cnt);
-                    if (alloc == NULL) return 1;
+                // Always retain one byte for the zero terminator.
+                if (*copy_idx + 1 >= capacity) {
+                    uint64_t new_capacity = capacity + STDIN_BUF_PAGE_SZ;
+                    char *new_alloc = realloc(alloc, new_capacity);
+                    if (new_alloc == NULL) {
+                        free(alloc);
+                        return 1;
+                    }
+                    alloc = new_alloc;
+                    capacity = new_capacity;
                 }
 
                 alloc[(*copy_idx)++] = ch;
@@ -228,7 +234,13 @@ uint8_t digest_buf(char *buf, int fd, uint64_t *copy_idx, char **stdin) {
         }
     }
 
-    *stdin = alloc;
+    if (r < 0) {
+        free(alloc);
+        return 1;
+    }
+
+    if (alloc != NULL) alloc[*copy_idx] = '\0';
+    *stdin_buf = alloc;
 
     return 0;
 }
