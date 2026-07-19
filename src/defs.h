@@ -20,12 +20,19 @@
 #define FLAG_STD
 
 // brainfuck alphabet
-#define BF_ALPHABET "<>+-[],."
 // '<>':        move pointer
 // '[]':        set loop (while(current_cell != 0)). must validate to find closing
 // '.':         print current cell
 // ',':         read user input (single char)
 // '+' and '-': read user input
+#ifdef EXTENSIONS
+#define BF_ALPHABET "<>+-[],.*"
+// '*': return value of current cell, terminating program
+
+#else
+#define BF_ALPHABET "<>+-[],."
+
+#endif
 
 // strive for 2mb or 4mb
 #define BF_ARRAY_SZ    2 << 18

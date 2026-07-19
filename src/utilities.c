@@ -47,8 +47,6 @@ uint64_t skip_whitespace(char **ptr) {
     return ret;
 }
 
-
-
 // make sure loops close
 validation_ret validate_buffer(char *p) {
     validation_ret ret = {0}; // returned

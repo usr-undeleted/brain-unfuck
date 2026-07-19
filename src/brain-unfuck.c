@@ -168,7 +168,7 @@ int main (const volatile int argc, const char *argv[]) {
                 if (
                     // define when to end loop
                     #ifdef END_LOOP_ON_NEG
-                    *array_ptr
+                    *array_ptr > 0
                     #else
                     *array_ptr != 0
                     #endif
@@ -183,6 +183,16 @@ int main (const volatile int argc, const char *argv[]) {
 
                 break;
             }
+
+            #ifdef EXTENSIONS
+
+            case '*': {
+                // return value of cell
+                return *array_ptr;
+                break;
+            }
+
+            #endif
 
             default: {
                 break;
