@@ -1,0 +1,31 @@
+[package]
+name = "brain-unfuck"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "AGPL-3.0-only"
+description = "A small Brainfuck interpreter"
+repository = "https://github.com/usr-undeleted/brain-unfuck"
+build = "build.rs"
+
+[[bin]]
+name = "bf"
+path = "src/main.rs"
+
+[features]
+default = []
+extensions = []
+unicode = []
+wide-char = ["unicode"]
+wchar = ["unicode"]
+end-loop-on-neg = []
+debug-trace = []
+debug = ["debug-trace"]
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
