@@ -12,7 +12,9 @@
 
 // to be added:
 // 1: stdin support
-// 2: extensions (such as exiting the program)
+
+uint8_t flag_help = 0;
+uint8_t flag_ver  = 0;
 
 int main (const volatile int argc, const char *argv[]) {
     if (argc < 2) {
@@ -24,33 +26,57 @@ int main (const volatile int argc, const char *argv[]) {
     int arg_count = 0; // number of file names provided
     int arg_loc   = 0; // argument with file name
 
+    // find arg_loc and set arg_count
     for (int i = 1; i < argc; i++) {
-        if (argv[i][0] == '-') {
-            if (!strcmp(argv[i], "--help") || strchr(argv[i], 'h')) {
-
-                // help msg
-                usage(argv[0], NULL);
-                return SUCCESS;
-
-            } else {
-                usage(argv[0], "Invalid flag");
-                return ERR_USER;
-            }
-
-        } else {
-            arg_count += 1;
-            arg_loc    = i;
+        if (argv[i][0] == '-') continue;
+        else {
+            arg_count++;
+            arg_loc = i;
         }
     }
 
-    int ret_code = 0;
-
-    if (arg_count > 1) {
-        usage(argv[0], "Too many arguments");
+    if (arg_loc == 0) {
+        fprintf(stderr, "No file provided.\n");
         return ERR_USER;
     }
-    else if (argc < 1) {
-        usage(argv[0], "No file provided");
+
+    if (arg_count > 1) {
+        fprintf(stderr, "Too many files provided.\n");
+        return ERR_USER;
+    }
+
+    // form flags
+    flag_failure flag_val = manage_flags(argc, argv);
+
+    // validate flags
+    if (flag_val.argv_idx) {
+        if (flag_val.char_idx) {
+            // chars
+            usage(argv[0], NULL);
+            fprintf(stderr, "\nError: Unknown flag (%s -> %c)!\n",
+                argv[flag_val.argv_idx], argv[flag_val.argv_idx][flag_val.char_idx]);
+            return ERR_USER;
+
+        } else {
+            // single string
+            usage(argv[0], NULL);
+            fprintf(stderr, "\nError: Unknown flag (%s)!\n",
+                argv[flag_val.argv_idx]);
+            return ERR_USER;
+        }
+    }
+
+    // consume flags
+    // you'll have to read the comments in the manage_flags()
+    // function to understand why we have it like this
+    if (flag_ver) {
+        usage(argv[0], NULL);
+        return 0;
+    }
+
+    if (flag_help) {
+        fprintf(stderr, VERSION);
+        return 0;
     }
 
     // open file descriptor
@@ -238,5 +264,5 @@ int main (const volatile int argc, const char *argv[]) {
         return ERR_CODE;
     }
 
-    return ret_code;
+    return 0;
 }

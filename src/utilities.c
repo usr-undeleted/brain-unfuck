@@ -11,7 +11,8 @@ void usage(const char *invoc, const char *msg) {
         "\t%s <file>\n\n"
 
         "options:\n"
-        "\t%s --help (or) -h: pull up this help message.\n\n"
+        "\t%s --help (or) -h: pull up this help message.\n"
+        "\t%s --version (or) -v: show version message. you might not want it :p\n\n"
 
         "%s compiled at %s on %s for %s (OS)\n"
         "FOSS program forever, licensed under the GPL-V3 license.\n"
@@ -20,8 +21,9 @@ void usage(const char *invoc, const char *msg) {
         invoc,
 
         invoc,
+        invoc,
 
-            // time of compilation, CC version, OS
+        // time of compilation, CC version, OS
         invoc, __TIMESTAMP__, __VERSION__, OS
     );
 
@@ -93,4 +95,60 @@ unsigned char buf_has_bf(const char *buf) {
     }
 
     return 0;
+}
+
+flag_failure manage_flags(const int argc, const char **argv) {
+    flag_failure ret = {0};
+
+    for (int i = 1; i < argc; i++) {
+        if (argv[i][0] != '-') continue;
+
+        if (!strncmp(argv[i], "--", 2)) {
+            // strings, add 2 to argv
+
+            if        (strcmp(argv[i] + 2, "help")) {
+                flag_help = 1;
+
+            } else if (strcmp(argv[i] + 2, "version")) {
+                flag_ver  = 1;
+
+            } else {
+                ret.argv_idx = i;
+                ret.char_idx = 0;
+                return ret;
+            }
+
+        } else {
+            // chars, start at argv[i][1]
+
+            // travel trough argv
+            for (uint64_t j = 1; j < strlen(argv[i]); j++) {
+
+                if (strchr(FLAGS, argv[i][j])) {
+                    switch (argv[i][j]) {
+                        // i dont know why the HELL the logic is reversed
+                        // if you're a wizard or something, can you remove
+                        // the curse this code has to fix this? (the logic
+                        // is reversed on help and version values)
+                        case 'h': {
+                            flag_ver = 1;
+                            break;
+                        }
+
+                        case 'v': {
+                            flag_help  = 1;
+                            break;
+                        }
+                    }
+
+                } else {
+                    ret.argv_idx = i;
+                    ret.char_idx = j;
+                    return ret;
+                }
+            }
+        }
+    }
+
+    return ret;
 }

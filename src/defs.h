@@ -15,10 +15,6 @@
 // 1. '*': return the value of cell
 // 2.
 
-// flags
-#define FLAG_HELP 1 << 0
-#define FLAG_STD
-
 // brainfuck alphabet
 // '<>':        move pointer
 // '[]':        set loop (while(current_cell != 0)). must validate to find closing
@@ -64,5 +60,28 @@ unsigned char buf_has_bf(const char *buf);
 #define ERR_CODE 1
 // mistake made by user
 #define ERR_USER 2
+
+// flag stuff
+#define FLAGS         "hv"
+
+// on success, set argv_idx to 0
+// on unknown full string flag, keep char_idx at 0
+// on unknown char, fill all fields
+typedef struct {
+    // idx of argv
+    uint32_t argv_idx;
+    // idx of char
+    uint32_t char_idx;
+} flag_failure;
+
+// global flags
+extern uint8_t flag_help;
+extern uint8_t flag_ver;
+
+// excludes argv[0] on its own, hand it the real argc and argv
+flag_failure manage_flags(const int argc, const char **argv);
+
+// funny!
+#define VERSION "I don't keep the versions of my programs, so uhhh, brain-unfuck 3000!!!\n"
 
 #endif
