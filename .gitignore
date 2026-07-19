@@ -57,3 +57,4 @@ dkms.conf
 # my own stuff
 bin/
 ignored/
+target/
