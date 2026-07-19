@@ -1,9 +1,11 @@
-#include "defs.h"
-#include "os_defs.h"
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <ctype.h>
+#include "os_defs.h"
+#include "defs.h"
 
 void usage(const char *invoc, const char *msg) {
     fprintf(stderr,
@@ -137,7 +139,7 @@ flag_failure manage_flags(const int argc, const char **argv) {
                         }
 
                         case 'v': {
-                            flag_ver = 1;
+                            flag_ver  = 1;
                             break;
                         }
 
@@ -179,4 +181,66 @@ char *find_closing(char *p) {
     }
 
     return NULL;
+}
+
+// form digest-able buffer
+uint8_t digest_buf(char *buf, int fd, uint64_t *copy_idx, char **stdin_buf) {
+    char ch = 0;
+    uint64_t capacity = 0;
+    char *alloc       = NULL;
+    if (fd == STDIN_FILENO) {
+        // allocate one page at a time
+        capacity = STDIN_BUF_PAGE_SZ;
+        alloc = calloc(capacity, sizeof(char));
+        if (alloc == NULL) return 1;
+    }
+
+    ssize_t r;
+    while ((r = read(fd, &ch, 1)) > 0) {
+
+        // comments
+        if (ch == '#') {
+            while ((r = read(fd, &ch, 1)) > 0 && ch != '\n') {
+                // discard the rest of the comment
+            }
+            if (r < 0) {
+                free(alloc);
+                return 1;
+            }
+            if (r == 0) break;
+            continue;
+        }
+
+        if (strchr(BF_ALPHABET, ch)) {
+            if (fd == STDIN_FILENO) {
+                // Always retain one byte for the zero terminator.
+                if (*copy_idx + 1 >= capacity) {
+                    uint64_t new_capacity = capacity + STDIN_BUF_PAGE_SZ;
+                    char *new_alloc = realloc(alloc, new_capacity);
+                    if (new_alloc == NULL) {
+                        free(alloc);
+                        return 1;
+                    }
+                    alloc = new_alloc;
+                    capacity = new_capacity;
+                }
+
+                alloc[(*copy_idx)++] = ch;
+
+            } else {
+                buf[(*copy_idx)++] = ch;
+
+            }
+        }
+    }
+
+    if (r < 0) {
+        free(alloc);
+        return 1;
+    }
+
+    if (alloc != NULL) alloc[*copy_idx] = '\0';
+    *stdin_buf = alloc;
+
+    return 0;
 }

@@ -103,6 +103,10 @@ extern uint8_t flag_raw;  // raw term mode
 // excludes argv[0] on its own, hand it the real argc and argv
 flag_failure manage_flags(const int argc, const char **argv);
 
+// digest buffer
+#define STDIN_BUF_PAGE_SZ 1024
+uint8_t digest_buf(char *buf, int fd, uint64_t *copy_idx, char **stdin);
+
 // funny!
 #define VERSION "I don't keep the versions of my programs, so uhhh, brain-unfuck 3000!!!\n"
 

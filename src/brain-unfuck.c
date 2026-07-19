@@ -11,34 +11,19 @@
 #include <stdio.h>
 #include "defs.h"
 
-// to be added:
-// 1: stdin support
-
 uint8_t flag_help = 0;
 uint8_t flag_ver  = 0;
 uint8_t flag_raw  = 0;
 uint8_t flag_echo = 1;
+uint8_t is_stdin  = 0;
 
 // applies terminal options back
 struct termios backup = {0};
 void handle_end(void) {
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &backup);
+    tcsetattr(STDERR_FILENO, TCSAFLUSH, &backup);
 }
 
 int main (const volatile int argc, const char *argv[]) {
-    // validate invocation
-    int arg_count = 0; // number of file names provided
-    int arg_loc   = 0; // argument with file name
-
-    // find arg_loc and set arg_count
-    for (int i = 1; i < argc; i++) {
-        if (argv[i][0] == '-') continue;
-        else {
-            arg_count++;
-            arg_loc = i;
-        }
-    }
-
     // form flags
     flag_failure flag_val = manage_flags(argc, argv);
 
@@ -60,7 +45,7 @@ int main (const volatile int argc, const char *argv[]) {
         }
     }
 
-    // consume flags before requiring a file
+    // consume flags before requiring input
     if (flag_help) {
         usage(argv[0], NULL);
         return 0;
@@ -71,79 +56,87 @@ int main (const volatile int argc, const char *argv[]) {
         return 0;
     }
 
-    if (arg_loc == 0) {
-        fprintf(stderr, "No file provided.\n");
+    // validate invocation
+    int arg_count = 0; // number of file names provided
+    int arg_loc   = 0; // argument with file name
+
+    // find arg_loc and set arg_count
+    for (int i = 1; i < argc; i++) {
+        if (argv[i][0] == '-') continue;
+        else {
+            arg_count++;
+            arg_loc = i;
+        }
+    }
+
+    // Prefer an explicit file when one is supplied; otherwise consume piped
+    // stdin. This keeps file execution working under non-interactive shells.
+    is_stdin = arg_count == 0 && !isatty(STDIN_FILENO);
+
+    if (arg_loc == 0 && !is_stdin) {
+        usage(argv[0], "No file provided");
         return ERR_USER;
     }
 
     if (arg_count > 1) {
-        fprintf(stderr, "Too many files provided.\n");
+        usage(argv[0], "Too many files provided");
         return ERR_USER;
     }
 
-    // open file descriptor
-    int fd;
-    if ((fd = open(argv[arg_loc], O_RDONLY)) == -1) {
-        fprintf(stderr, "Failed to open file '%s': %s\n", argv[arg_loc], strerror(errno));
-        return ERR_USER;
-    }
-
-    // get file stats
-    struct stat st;
-    if (fstat(fd, &st) == -1) {
-        fprintf(stderr, "Failed to get stats on file '%s': %s\n", argv[arg_loc], strerror(errno));
-        return ERR_CODE;
-    }
-
-    // form page alignment for munmap() and mmap()
-    int64_t page_size = sysconf(_SC_PAGESIZE);
-    if (page_size == -1) {
-        fprintf(stderr, "Failed to obtain system page size: %s\n", strerror(errno));
-        return ERR_CODE;
-    }
-    // Keep one extra byte for the zero terminator, including when the input
-    // size is exactly page-aligned.
-    uint64_t m_aligned = (st.st_size + 1 + page_size - 1) & ~(page_size - 1); // oooo fancy bitwise!
-
-    // make a mmap() of file, copy the contents over, then make
-    // the file more digest-able for the parser (removing comments)
-    char *file;
-    if ((file = mmap(0, m_aligned, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)) == MAP_FAILED) {
-        fprintf(stderr, "Failed to allocate memory for file '%s': %s\n", argv[arg_loc], strerror(errno));
-        return ERR_CODE;
-    }
-    // copy over contents
-    // go trough char by char, only including ones we are gonna use
-    uint64_t copy_idx = 0;
-    uint8_t      fail = 0;
-    char           ch = 0;
-    ssize_t r;
-    while ((r = read(fd, &ch, 1)) > 0) {
-
-        // comments
-        if (ch == '#') {
-            while ((r = read(fd, &ch, 1)) > 0 && ch != '\n') {
-                // discard the rest of the comment
-            }
-            if (r < 0) fail = 1;
-            if (fail || r == 0) break;
-            continue;
+    int             fd = STDIN_FILENO;
+    uint64_t m_aligned = 0;
+    uint64_t copy_idx  = 0;
+    char        *file  = NULL; // keep null for stdin
+    if (!is_stdin) {
+        // no stdin branch
+        // open file descriptor
+        if ((fd = open(argv[arg_loc], O_RDONLY)) == -1) {
+            fprintf(stderr, "Failed to open file '%s': %s\n", argv[arg_loc], strerror(errno));
+            return ERR_USER;
         }
 
-        if (strchr(BF_ALPHABET, ch)) {
-            file[copy_idx++] = ch;
+        // get file stats
+        struct stat st;
+        if (fstat(fd, &st) == -1) {
+            fprintf(stderr, "Failed to get stats on file '%s': %s\n", argv[arg_loc], strerror(errno));
+            return ERR_CODE;
+        }
+
+        // form page alignment for munmap() and mmap()
+        int64_t page_size = sysconf(_SC_PAGESIZE);
+        if (page_size == -1) {
+            fprintf(stderr, "Failed to obtain system page size: %s\n", strerror(errno));
+            return ERR_CODE;
+        }
+        // Keep one extra byte for the zero terminator, including when the
+        // input size is exactly page-aligned.
+        m_aligned = (st.st_size + 1 + page_size - 1) & ~(page_size - 1); // oooo fancy bitwise!
+
+        // make a mmap() of file, copy the contents over, then make
+        // the file more digest-able for the parser (removing comments)
+        if ((file = mmap(0, m_aligned, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)) == MAP_FAILED) {
+            fprintf(stderr, "Failed to allocate memory for file '%s': %s\n", argv[arg_loc], strerror(errno));
+            return ERR_CODE;
         }
     }
 
-    if (r < 0) fail = 1;
-
-    if (fail) {
-        fprintf(stderr, "Failed to read file '%s': %s\n", argv[arg_loc], strerror(errno));
+    // make buffer with no comments
+    // deals with stdin automatically
+    char *stdin_buf = NULL;
+    if (digest_buf(file, fd, &copy_idx, &stdin_buf)) {
+        // pos value = failure
+        fprintf(stderr, "Failed to digest buffer: %s\n", strerror(errno));
         return ERR_CODE;
     }
+    if (is_stdin) file = stdin_buf;
 
     if (!buf_has_bf(file)) {
         fprintf(stderr, "Provided file has no valid brainfuck code.\n");
+        return ERR_USER;
+    }
+
+    if (is_stdin && strchr(file, ',')) {
+        fprintf(stderr, "User input cannot be used when stdin is provided (remove commas from code).\n");
         return ERR_USER;
     }
 
@@ -188,7 +181,7 @@ int main (const volatile int argc, const char *argv[]) {
         // set up new terminal options
         struct termios new_term = {0};
         // populate backup and set backup
-        if (tcgetattr(STDIN_FILENO, &backup) == -1) {
+        if (tcgetattr(STDERR_FILENO, &backup) == -1) {
             fprintf(stderr, "Failed to get old terminal definitions: %s\n", strerror(errno));
             return ERR_CODE;
         }
@@ -204,7 +197,7 @@ int main (const volatile int argc, const char *argv[]) {
         if (!flag_echo) {
             new_term.c_lflag    &= ~(ECHO);   // clear echoding
         }
-        if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &new_term) == -1) {
+        if (tcsetattr(STDERR_FILENO, TCSAFLUSH, &new_term) == -1) {
             fprintf(stderr, "Failed to set new terminal definitions: %s\n", strerror(errno));
             return ERR_CODE;
         }
@@ -341,17 +334,21 @@ int main (const volatile int argc, const char *argv[]) {
         file_ptr++;
     }
 
-    // finish up
-    // close mmap() allocated file
-    if (munmap(file, m_aligned) == -1) {
-        fprintf(stderr, "Failed to close mapped memory: %s\n", strerror(errno));
-        return ERR_CODE;
-    }
+    if (!is_stdin) {
+        // finish up
+        // close mmap() allocated file
+        if (munmap(file, m_aligned) == -1) {
+            fprintf(stderr, "Failed to close mapped memory: %s\n", strerror(errno));
+            return ERR_CODE;
+        }
 
-    // close file descriptor
-    if (close(fd) == -1) {
-        fprintf(stderr, "Failed to close file '%s': %s\n", argv[arg_loc], strerror(errno));
-        return ERR_CODE;
+        // close file descriptor
+        if (close(fd) == -1) {
+            fprintf(stderr, "Failed to close file '%s': %s\n", argv[arg_loc], strerror(errno));
+            return ERR_CODE;
+        }
+    } else {
+        free(file);
     }
 
     return 0;

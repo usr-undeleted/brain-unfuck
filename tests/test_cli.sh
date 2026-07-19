@@ -18,9 +18,13 @@ assert_contains() {
 
 help_output=$("$binary" --help 2>&1)
 assert_contains "$help_output" "usage:"
+short_help_output=$("$binary" -h 2>&1)
+assert_contains "$short_help_output" "usage:"
 
 version_output=$("$binary" --version 2>&1)
 assert_contains "$version_output" "brain-unfuck 3000"
+short_version_output=$("$binary" -v 2>&1)
+assert_contains "$short_version_output" "brain-unfuck 3000"
 
 if unknown_output=$("$binary" --unknown 2>&1); then
     printf 'unknown option unexpectedly succeeded\n' >&2
@@ -35,8 +39,18 @@ if [ "$program_output" != "A" ]; then
     exit 1
 fi
 
+stdin_output=$(printf '++++++++[>++++++++<-]>+.' | "$binary")
+if [ "$stdin_output" != "A" ]; then
+    printf 'expected stdin interpreter output A, got: %s\n' "$stdin_output" >&2
+    exit 1
+fi
+
 # A page-sized program must still have a zero terminator in the digest buffer.
-dd if=/dev/zero bs=4096 count=1 2>/dev/null | tr '\0' '+' > "$fixture"
+page_size=$(getconf PAGESIZE)
+dd if=/dev/zero bs="$page_size" count=1 2>/dev/null | tr '\0' '+' > "$fixture"
 "$binary" "$fixture"
+
+# The dynamically grown stdin buffer needs the same terminating byte.
+dd if=/dev/zero bs=1024 count=1 2>/dev/null | tr '\0' '+' | "$binary"
 
 printf 'CLI tests passed\n'
