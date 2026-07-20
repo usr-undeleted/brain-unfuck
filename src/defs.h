@@ -127,4 +127,7 @@ uint8_t digest_buf(char *buf, int fd, uint64_t *copy_idx, char **stdin);
 // funny!
 #define VERSION "I don't keep the versions of my programs, so uhhh, brain-unfuck 3000!!!\n"
 
+// main function
+void interpreter(const char *file, const uint64_t copy_idx);
+
 #endif
