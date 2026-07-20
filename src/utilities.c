@@ -101,6 +101,7 @@ validation_ret validate_buffer(char *p) {
     return ret;
 }
 
+// return 0 when no match was found
 unsigned char buf_has_bf(const char *buf) {
     char *str = BF_ALPHABET;
 
@@ -112,6 +113,7 @@ unsigned char buf_has_bf(const char *buf) {
     return 0;
 }
 
+// compare argv against flags
 flag_failure manage_flags(const int argc, const char **argv) {
     flag_failure ret = {0};
 
@@ -205,10 +207,9 @@ char *find_closing(char *p) {
     return NULL;
 }
 
-// form digest-able buffer
+// create and digest buffer
 uint8_t form_buf(char *buf, int fd, uint64_t *copy_idx, char **stdin) {
     char ch = 0;
-    //uint64_t stdin_allocs = 1;
     uint64_t alloc_cnt = 0;
     char *alloc        = NULL;
     if (fd == STDIN_FILENO) {
