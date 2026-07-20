@@ -26,14 +26,6 @@ int d_arg_loc;
 int d_arg_cnt;
 char  *d_file;
 
-// extra for regular exiting
-uint8_t atexit_is_caller = 0;
-void debug_end(int d);
-void atexit_debug(void) {
-    atexit_is_caller = 1;
-    debug_end(0);
-}
-
 // debug dump
 void debug_end(int d) {
     (void)d;
@@ -72,7 +64,7 @@ void debug_end(int d) {
 
     write(STDOUT_FILENO, "\x1b[0m", sizeof("\x1b[0m"));
 
-    if (!atexit_is_caller) exit(3);
+    exit(ERR_DEBUG);
 }
 
 #endif
@@ -85,13 +77,6 @@ void handle_end(void) {
 
 int main (const volatile int argc, const char *argv[]) {
     #ifdef DEBUG
-    // set atexit
-    if (atexit(atexit_debug) != 0) {
-        fprintf(stderr, "Couldn't set exiting for debugging.\n");
-        DEBUG_ERR_LOC;
-        return ERR_DEBUG;
-    }
-
     // set signals
     struct sigaction s;
     s.sa_handler = debug_end;
