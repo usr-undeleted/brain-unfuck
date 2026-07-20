@@ -33,6 +33,22 @@ void shell_help(void) {
     );
 }
 
+// find the argument asked for in index (index 1 = first arg)
+// returns NULL on failure
+char *find_arg(const char *ptr, uint64_t idx) {
+    char *ret = (char *)ptr;
+
+    while (*ret) {
+        if (isspace(*ret)) {
+            if (idx - 1 == 0) return ++ret;
+            else idx--;
+        }
+        ret++;
+    }
+
+    return NULL;
+}
+
 // set value 130
 int loop_ret = 0;
 void handle_sigint(int d) {
@@ -109,6 +125,15 @@ int shell(void) {
                 shell_help();
                 continue;
         }
+
+        else if (!strncmp(buf, "echo", 4) &&
+            (isspace(buf[4]) || buf[4] == '\0')) {
+                char *arg = find_arg(buf, 1);
+                if (!arg || !arg[0]) putchar('\n');
+                else printf("%s", arg);
+
+                continue;
+            }
 
         else if (!buf_has_bf(buf)) {
             // invalid command
