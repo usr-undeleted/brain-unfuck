@@ -23,6 +23,7 @@ void shell_help(void) {
         "- commands:\n"
         "\texit:  exit the program. You may specify a second argument to return that specific number.\n"
         "\thelp:  show this help message.\n"
+        "\techo:  print args 1+.\n"
         "\tclear: clear the terminal.\n\n"
 
         "- return values:\n"
