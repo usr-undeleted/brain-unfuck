@@ -122,7 +122,7 @@ int shell(void) {
                 if (space) *space = '\0';
             }
 
-            fprintf(stderr, "bfsh: no such built-in \"%s\".",  buf);
+            fprintf(stderr, "bfsh: no such built-in \"%s\".\n",  buf);
             loop_ret = ERR_USER;
             continue;
         }
