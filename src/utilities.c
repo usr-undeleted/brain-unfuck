@@ -28,6 +28,10 @@ void usage(const char *invoc, const char *msg) {
         #ifdef USE_WCHAR
         "Program was compiled with <wchar.h> included (using wint_t for cell size).\n"
         #endif
+
+        #ifdef EXTENSIONS
+        "Program was compiled with extensions enabled.\n"
+        #endif
         ,
         invoc,
 

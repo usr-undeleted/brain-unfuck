@@ -22,9 +22,12 @@
 // ',':         read user input (single char)
 // '+' and '-': read user input
 #ifdef EXTENSIONS
-#define BF_ALPHABET "<>+-[],.*=~"
+#include <time.h>
+#define BF_ALPHABET "<>+-[],.*=~?"
 // '*': return value of current cell, terminating program
 // '=': switch the current file descriptor of output
+// '~': flip bits on a cell
+// '?': get a random value
 
 #else
 #define BF_ALPHABET "<>+-[],."

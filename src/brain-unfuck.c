@@ -311,6 +311,13 @@ int main (const volatile int argc, const char *argv[]) {
         }
     }
 
+    // get a random number for '?'
+    #ifdef EXTENSIONS
+    uint64_t r_extra; // undefined on purpose
+    // lovely little function call
+    srand((time(NULL) * argc) << (r_extra + ((strlen(argv[0]) << strlen(OS)) * strlen(argv[1]))));
+    #endif
+
     // store pointers to loops on a stack
     uint16_t loop_idx                  = 0;     // how deep we are on loops
     char    *loop_stack[LOOP_STACK_SZ] = {0};   // loop pointers
@@ -443,6 +450,12 @@ int main (const volatile int argc, const char *argv[]) {
             case '~': {
                 // simple bit flip
                 *array_ptr = ~*array_ptr;
+                break;
+            }
+
+            case '?': {
+                // get a random number
+                *array_ptr = rand();
                 break;
             }
 
