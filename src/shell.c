@@ -114,7 +114,7 @@ int shell(void) {
         }
         else if (!strncmp(buf, "clear", 5) &&
             (isspace(buf[5]) || buf[5] == '\0')) {
-            printf("\x1b[H\x1b[2J\x1b[J");
+            printf("\x1b[H\x1b[2J\x1b[3J");
             putchar('\n');
             continue;
         }
