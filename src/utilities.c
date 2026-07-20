@@ -124,19 +124,19 @@ flag_failure manage_flags(const int argc, const char **argv) {
             // strings, add 2 to argv
 
             if        (!strcmp(argv[i] + 2, "help")) {
-                flag_help = 1;
+                global_flags.help = 1;
 
             } else if (!strcmp(argv[i] + 2, "version")) {
-                flag_ver  = 1;
+                global_flags.ver  = 1;
 
             } else if (!strcmp(argv[i] + 2, "raw")) {
-                flag_raw  = 1;
+                global_flags.raw  = 1;
 
             } else if (!strcmp(argv[i] + 2, "no-echo")) {
-                flag_echo = 0;
+                global_flags.echo = 0;
 
             } else if (!strcmp(argv[i] + 2, "shell")) {
-                flag_sh   = 1;
+                global_flags.sh   = 1;
 
             } else {
                 ret.argv_idx = i;
@@ -153,27 +153,27 @@ flag_failure manage_flags(const int argc, const char **argv) {
                 if (strchr(FLAGS, argv[i][j])) {
                     switch (argv[i][j]) {
                         case 'h': {
-                            flag_help = 1;
+                            global_flags.help = 1;
                             break;
                         }
 
                         case 'v': {
-                            flag_ver  = 1;
+                            global_flags.ver  = 1;
                             break;
                         }
 
                         case 'E': {
-                            flag_echo = 0;
+                            global_flags.echo = 0;
                             break;
                         }
 
                         case 'r': {
-                            flag_raw  = 1;
+                            global_flags.raw  = 1;
                             break;
                         }
 
                         case 's': {
-                            flag_sh    = 1;
+                            global_flags.sh   = 1;
                             break;
                         }
                     }

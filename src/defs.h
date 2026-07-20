@@ -111,12 +111,16 @@ typedef struct {
     uint32_t char_idx;
 } flag_failure;
 
-// global flags
-extern uint8_t flag_help; // help
-extern uint8_t flag_echo; // wether to echo or not
-extern uint8_t flag_ver;  // version
-extern uint8_t flag_raw;  // raw term mode
-extern uint8_t flag_sh;   // shell toggle
+typedef struct {
+    uint8_t stdin : 1; // stdin toggle
+    uint8_t help  : 1; // help menu
+    uint8_t echo  : 1; // user input visibility
+    uint8_t ver   : 1; // version
+    uint8_t raw   : 1; // raw term mode
+    uint8_t sh    : 1; // shell toggle
+} all_flags;
+
+extern all_flags global_flags;
 
 // excludes argv[0] on its own, hand it the real argc and argv
 flag_failure manage_flags(const int argc, const char **argv);

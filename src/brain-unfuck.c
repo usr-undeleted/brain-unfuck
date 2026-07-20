@@ -11,12 +11,13 @@
 #include <stdio.h>
 #include "defs.h"
 
-uint8_t flag_help = 0;
-uint8_t flag_ver  = 0;
-uint8_t flag_raw  = 0;
-uint8_t flag_echo = 1;
-uint8_t flag_sh   = 0;
-uint8_t is_stdin  = 0;
+all_flags global_flags = {
+    .stdin = 0,
+    .help  = 0,
+    .echo  = 1,
+    .ver   = 0,
+    .raw   = 0,
+};
 
 #ifdef DEBUG
 #include <signal.h>
@@ -56,12 +57,12 @@ void debug_end(int d) {
         "\tver:   %d\n"
         "\traw:   %d\n"
         "\tsh:    %d\n",
-        is_stdin,
-        flag_help,
-        flag_echo,
-        flag_ver,
-        flag_raw,
-        flag_sh
+        global_flags.stdin,
+        global_flags.help,
+        global_flags.echo,
+        global_flags.ver,
+        global_flags.raw,
+        global_flags.sh
     );
 
     write(STDOUT_FILENO, "\x1b[0m", sizeof("\x1b[0m"));
@@ -90,14 +91,14 @@ int main (const volatile int argc, const char *argv[]) {
 
     #endif
     // check stdin
-    if (!isatty(STDIN_FILENO)) is_stdin = 1;
+    if (!isatty(STDIN_FILENO)) global_flags.stdin = 1;
 
     #ifdef DEBUG
     d_argv = (char **)argv;
     d_argc = argc;
     #endif
 
-    if (argc < 2 && !is_stdin) {
+    if (argc < 2 && !global_flags.stdin) {
         usage(argv[0], "Not enough arguments.");
         DEBUG_ERR_LOC;
         return 1;
@@ -127,12 +128,12 @@ int main (const volatile int argc, const char *argv[]) {
     }
 
     // consume flags
-    if (flag_help) {
+    if (global_flags.help) {
         usage(argv[0], NULL);
         return 0;
     }
 
-    if (flag_ver) {
+    if (global_flags.ver) {
         fprintf(stderr, VERSION);
         return 0;
     }
@@ -156,8 +157,8 @@ int main (const volatile int argc, const char *argv[]) {
     #endif
 
     // flag is here cus of arg_count
-    if (flag_sh) {
-        if (is_stdin) {
+    if (global_flags.sh) {
+        if (global_flags.stdin) {
             fprintf(stderr, "Can't execute with both stdin and shell.\n");
             DEBUG_ERR_LOC;
             return ERR_USER;
@@ -169,15 +170,15 @@ int main (const volatile int argc, const char *argv[]) {
         return shell();
     }
 
-    if (arg_loc == 0 && !is_stdin) {
+    if (arg_loc == 0 && !global_flags.stdin) {
         usage(argv[0], "No file provided.");
         DEBUG_ERR_LOC;
 
         return ERR_USER;
     }
 
-    if (arg_count > (1 - is_stdin)) {
-        is_stdin ?
+    if (arg_count > (1 - global_flags.stdin)) {
+        global_flags.stdin ?
             // stdin
             usage(argv[0], "Too many files provided (stdin was provided).")
         :
@@ -191,7 +192,7 @@ int main (const volatile int argc, const char *argv[]) {
     uint64_t m_aligned = 0;
     uint64_t copy_idx  = 0;
     char        *file  = NULL; // keep null for stdin
-    if (!is_stdin) {
+    if (!global_flags.stdin) {
         // no stdin branch
         // open file descriptor
         if ((fd = open(argv[arg_loc], O_RDONLY)) == -1) {
@@ -239,7 +240,7 @@ int main (const volatile int argc, const char *argv[]) {
         DEBUG_ERR_LOC;
         return ERR_CODE;
     }
-    if (is_stdin) file = stdin_b;
+    if (global_flags.stdin) file = stdin_b;
 
     if (!buf_has_bf(file)) {
         fprintf(stderr, "Provided file has no valid brainfuck code.\n");
@@ -247,7 +248,7 @@ int main (const volatile int argc, const char *argv[]) {
         return ERR_USER;
     }
 
-    if (is_stdin && strchr(file, ',')) {
+    if (global_flags.stdin && strchr(file, ',')) {
         fprintf(stderr, "User input cannot be used when stdin is provided (remove commas from code).\n");
         DEBUG_ERR_LOC;
         return ERR_USER;
@@ -294,7 +295,7 @@ int main (const volatile int argc, const char *argv[]) {
     #endif
 
     // incase the user specified terminal-changing options
-    if (flag_raw || !flag_echo) {
+    if (global_flags.raw || !global_flags.echo) {
         // set up new terminal options
         struct termios new_term = {0};
         // populate backup and set backup
@@ -312,12 +313,12 @@ int main (const volatile int argc, const char *argv[]) {
 
         // populate new options
         new_term = backup;
-        if (flag_raw) {
+        if (global_flags.raw) {
             new_term.c_lflag    &= ~(ICANON); // set to raw
             new_term.c_cc[VMIN]  = 1;         // get one char at a time
             new_term.c_cc[VTIME] = 0;         // remove all delay
         }
-        if (!flag_echo) {
+        if (!global_flags.echo) {
             new_term.c_lflag    &= ~(ECHO);   // clear echoding
         }
         if (tcsetattr(STDERR_FILENO, TCSAFLUSH, &new_term) == -1) {
@@ -329,7 +330,7 @@ int main (const volatile int argc, const char *argv[]) {
 
     interpreter(file, copy_idx);
 
-    if (!is_stdin) {
+    if (!global_flags.stdin) {
         // finish up
         // close mmap() allocated file
         if (munmap(file, m_aligned) == -1) {
