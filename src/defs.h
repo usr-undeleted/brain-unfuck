@@ -23,7 +23,7 @@
 // '+' and '-': read user input
 #ifdef EXTENSIONS
 #include <time.h>
-#define BF_ALPHABET "<>+-[],.*=~?"
+#define BF_ALPHABET "<>+-[],.*=~?@&"
 // '*': return value of current cell, terminating program
 // '=': switch the current file descriptor of output
 // '~': flip bits on a cell
@@ -50,7 +50,7 @@ typedef uint8_t array_t;
 typedef wint_t array_t;
 
 #define GETC(v) getwchar()
-#define PUTC(x) printf("%lc", x)
+#define PUTC(x, s) fprintf(s, "%lc", x)
 #endif
 
 // find ']' for '['

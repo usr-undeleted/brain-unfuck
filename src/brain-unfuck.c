@@ -459,6 +459,18 @@ int main (const volatile int argc, const char *argv[]) {
                 break;
             }
 
+            case '@': {
+                // sleep() wrapper
+                sleep(*array_ptr);
+                break;
+            }
+
+            case '&': {
+                // usleep() wrapper
+                usleep(*array_ptr);
+                break;
+            }
+
             #endif
 
             default: {
