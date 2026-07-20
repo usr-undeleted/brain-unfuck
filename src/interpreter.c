@@ -11,7 +11,7 @@ void interpreter(const char *file, const uint64_t copy_idx) {
     #ifdef EXTENSIONS
     uint64_t r_extra; // undefined on purpose
     // lovely little function call
-    srand((time(NULL) * (uint64_t)file) / copy_idx );
+    srand((time(NULL) * (uint64_t)file) / copy_idx << r_extra);
     #endif
 
     // store pointers to loops on a stack
