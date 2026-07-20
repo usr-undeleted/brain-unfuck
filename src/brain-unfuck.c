@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include "os_defs.h"
 #include "defs.h"
 
 uint8_t flag_help = 0;
@@ -369,7 +370,11 @@ int main (const volatile int argc, const char *argv[]) {
 
             case '.': {
                 // print cell
-                PUTC(*array_ptr);
+                if (*array_ptr == 10) {
+                    write(STDOUT_FILENO, PLATFORM_NL, sizeof(PLATFORM_NL));
+                } else {
+                    PUTC(*array_ptr);
+                }
                 break;
             }
 

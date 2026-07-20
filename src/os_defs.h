@@ -209,4 +209,12 @@
 #define OS "Unknown"
 
 #endif // OS macro chain
+
+// new line
+#ifdef _WIN32
+#define PLATFORM_NL "\r\n"
+#else
+#define PLATFORM_NL "\n"
+#endif
+
 #endif // header
