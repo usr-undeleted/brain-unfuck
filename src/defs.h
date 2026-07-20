@@ -22,8 +22,9 @@
 // ',':         read user input (single char)
 // '+' and '-': read user input
 #ifdef EXTENSIONS
-#define BF_ALPHABET "<>+-[],.*"
+#define BF_ALPHABET "<>+-[],.*="
 // '*': return value of current cell, terminating program
+// '=': switch the current file descriptor of output
 
 #else
 #define BF_ALPHABET "<>+-[],."
@@ -37,8 +38,8 @@
 #ifndef USE_WCHAR
 typedef uint8_t array_t;
 
-#define GETC(v) getchar()
-#define PUTC(c) putchar(c)
+#define GETC(v)    getchar()
+#define PUTC(c, s) putc(c, s)
 
 #else
 #include <locale.h>

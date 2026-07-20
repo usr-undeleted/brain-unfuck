@@ -11,4 +11,5 @@ This turned out to actually be fun, so I'll probably give this a bit more suppor
 5. Unicode characters may be written.
 
 You may optionally want to implement some extensions I made by defining the macro `EXTENSIONS`, that provides the following new characters:  
-`*`: Return the value of the current cell, terminating the process
+`*`: Return the value of the current cell, terminating the process.  
+`=`: Changes the output stream to the value of the current cell. Only works for stdin (0), stdout (1), or stderr(2), any other value will end the execution of the interpreter.

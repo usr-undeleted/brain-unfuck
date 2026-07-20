@@ -231,14 +231,14 @@ int main (const volatile int argc, const char *argv[]) {
 
     // make buffer with no comments
     // deals with stdin automatically
-    char *stdin;
-    if (digest_buf(file, fd, &copy_idx, &stdin)) {
+    char *stdin_b;
+    if (digest_buf(file, fd, &copy_idx, &stdin_b)) {
         // pos value = failure
         fprintf(stderr, "Failed to digest buffer: %s\n", strerror(errno));
         DEBUG_ERR_LOC;
         return ERR_CODE;
     }
-    if (is_stdin) file = stdin;
+    if (is_stdin) file = stdin_b;
 
     if (!buf_has_bf(file)) {
         fprintf(stderr, "Provided file has no valid brainfuck code.\n");
@@ -334,6 +334,10 @@ int main (const volatile int argc, const char *argv[]) {
     array_t *array_ptr                 = array; // user pointer
     char    *file_ptr                  = file;  // the file pointer
 
+    // make a FILE pointer for the default file descriptor, 1, aka, stdout
+    // if extensions are enabled, '=' can change it
+    FILE *output_stream = stdout;
+
     // main loop
     while (1) {
         // i guess this is needed..?
@@ -373,7 +377,7 @@ int main (const volatile int argc, const char *argv[]) {
                 if (*array_ptr == 10) {
                     write(STDOUT_FILENO, PLATFORM_NL, sizeof(PLATFORM_NL));
                 } else {
-                    PUTC(*array_ptr);
+                    PUTC(*array_ptr, output_stream);
                 }
                 break;
             }
@@ -429,6 +433,25 @@ int main (const volatile int argc, const char *argv[]) {
             case '*': {
                 // return value of cell
                 return *array_ptr;
+                break;
+            }
+
+            case '=': {
+                // change the output file stream to cell
+                switch (*array_ptr) {
+                    case STDIN_FILENO:  output_stream = stdin;  break;
+                    case STDOUT_FILENO: output_stream = stdout; break;
+                    case STDERR_FILENO: output_stream = stderr; break;
+                    default: {
+                        fprintf(stderr,
+                            "Refusing to operate further: file descriptor '%d' on cell '%ld' is invalid.\n",
+                            *array_ptr, array_ptr - array);
+                        DEBUG_ERR_LOC;
+                        return ERR_USER;
+                        break;
+                    }
+                }
+
                 break;
             }
 
