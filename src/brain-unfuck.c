@@ -440,6 +440,12 @@ int main (const volatile int argc, const char *argv[]) {
                 break;
             }
 
+            case '~': {
+                // simple bit flip
+                *array_ptr = ~*array_ptr;
+                break;
+            }
+
             #endif
 
             default: {

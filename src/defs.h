@@ -22,7 +22,7 @@
 // ',':         read user input (single char)
 // '+' and '-': read user input
 #ifdef EXTENSIONS
-#define BF_ALPHABET "<>+-[],.*="
+#define BF_ALPHABET "<>+-[],.*=~"
 // '*': return value of current cell, terminating program
 // '=': switch the current file descriptor of output
 
