@@ -17,8 +17,8 @@ void usage(const char *invoc, const char *msg) {
         "\t--version (or) -v: show version message. you might not want it :p\n"
         "\t--raw     (or) -r: enable raw terminal mode (user input is immediately processed).\n"
         "\t--no-echo (or) -E: disable the visibility of user input.\n"
-        "\t--signal  (or) -s: enable a shell mode.\n"
-        "\tnote that the shell will process only one buffer at a time, aka, only what you just wrote onto the shell shall be processed.\n"
+        "\t--shell  (or) -s: enable a shell mode.\n"
+        "\tnote that the shell will process only one buffer at a time, aka, only what you just wrote onto the shell shall be processed.\n\n"
 
         "%s compiled at %s on %s for %s (OS)\n"
         "FOSS program forever, licensed under the GPL-V3 license.\n"
