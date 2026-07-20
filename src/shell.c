@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -39,7 +38,7 @@ int shell(void) {
         // to use here...
         // maybe make it take one const buf to copy from, and another to copy to
 
-        if      (!strcmp(buf, "exit"))  exit(0);
+        if      (!strcmp(buf, "exit"))  return 0;
         else if (!strcmp(buf, "clear")) printf("\x1b[H\x1b[2J\x1b[J");
         else if (!strcmp(buf, "help"))  shell_help();
 

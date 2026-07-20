@@ -98,7 +98,7 @@ int main (const volatile int argc, const char *argv[]) {
     #endif
 
     if (argc < 2 && !is_stdin) {
-        usage(argv[0], "Not enough arguments");
+        usage(argv[0], "Not enough arguments.");
         DEBUG_ERR_LOC;
         return 1;
     }
@@ -111,7 +111,7 @@ int main (const volatile int argc, const char *argv[]) {
         if (flag_val.char_idx) {
             // chars
             usage(argv[0], NULL);
-            fprintf(stderr, "\nError: Unknown flag %s -> %c!\n",
+            fprintf(stderr, "\nError: Unknown flag \"%s\" -> '%c'.\n",
                 argv[flag_val.argv_idx], argv[flag_val.argv_idx][flag_val.char_idx]);
             DEBUG_ERR_LOC;
             return ERR_USER;
@@ -119,7 +119,7 @@ int main (const volatile int argc, const char *argv[]) {
         } else {
             // single string
             usage(argv[0], NULL);
-            fprintf(stderr, "\nError: Unknown flag %s!\n",
+            fprintf(stderr, "\nError: Unknown flag \"%s\".\n",
                 argv[flag_val.argv_idx]);
             DEBUG_ERR_LOC;
             return ERR_USER;
@@ -135,10 +135,6 @@ int main (const volatile int argc, const char *argv[]) {
     if (flag_ver) {
         fprintf(stderr, VERSION);
         return 0;
-    }
-
-    if (flag_sh) {
-        return shell();
     }
 
     // validate invocation
@@ -159,8 +155,22 @@ int main (const volatile int argc, const char *argv[]) {
     d_arg_loc = arg_loc;
     #endif
 
+    // flag is here cus of arg_count
+    if (flag_sh) {
+        if (is_stdin) {
+            fprintf(stderr, "Can't execute with both stdin and shell.\n");
+            DEBUG_ERR_LOC;
+            return ERR_USER;
+        }
+
+        if (arg_count > 0) printf("Warning: file%c won't be used in shell mode.\n",
+            arg_count > 1 ? 's' : '\0');
+
+        return shell();
+    }
+
     if (arg_loc == 0 && !is_stdin) {
-        usage(argv[0], "No file provided");
+        usage(argv[0], "No file provided.");
         DEBUG_ERR_LOC;
 
         return ERR_USER;
@@ -169,10 +179,10 @@ int main (const volatile int argc, const char *argv[]) {
     if (arg_count > (1 - is_stdin)) {
         is_stdin ?
             // stdin
-            usage(argv[0], "Too many files provided (stdin was provided)")
+            usage(argv[0], "Too many files provided (stdin was provided).")
         :
             // regular
-            usage(argv[0], "Too many files provided ");
+            usage(argv[0], "Too many files provided.");
         DEBUG_ERR_LOC;
         return ERR_USER;
     }
