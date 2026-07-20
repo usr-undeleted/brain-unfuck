@@ -9,13 +9,13 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include "os_defs.h"
 #include "defs.h"
 
 uint8_t flag_help = 0;
 uint8_t flag_ver  = 0;
 uint8_t flag_raw  = 0;
 uint8_t flag_echo = 1;
+uint8_t flag_sh   = 0;
 uint8_t is_stdin  = 0;
 
 #ifdef DEBUG
@@ -54,12 +54,14 @@ void debug_end(int d) {
         "\thelp:  %d\n"
         "\techo:  %d\n"
         "\tver:   %d\n"
-        "\traw:   %d\n",
+        "\traw:   %d\n"
+        "\tsh:    %d\n",
         is_stdin,
         flag_help,
         flag_echo,
         flag_ver,
-        flag_raw
+        flag_raw,
+        flag_sh
     );
 
     write(STDOUT_FILENO, "\x1b[0m", sizeof("\x1b[0m"));
@@ -133,6 +135,10 @@ int main (const volatile int argc, const char *argv[]) {
     if (flag_ver) {
         fprintf(stderr, VERSION);
         return 0;
+    }
+
+    if (flag_sh) {
+        return shell();
     }
 
     // validate invocation
@@ -217,7 +223,7 @@ int main (const volatile int argc, const char *argv[]) {
     // make buffer with no comments
     // deals with stdin automatically
     char *stdin_b;
-    if (digest_buf(file, fd, &copy_idx, &stdin_b)) {
+    if (form_buf(file, fd, &copy_idx, &stdin_b)) {
         // pos value = failure
         fprintf(stderr, "Failed to digest buffer: %s\n", strerror(errno));
         DEBUG_ERR_LOC;

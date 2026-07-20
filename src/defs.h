@@ -99,7 +99,7 @@ unsigned char buf_has_bf(const char *buf);
 #endif
 
 // flag stuff
-#define FLAGS         "hvrE"
+#define FLAGS         "hvrEs"
 
 // on success, set argv_idx to 0
 // on unknown full string flag, keep char_idx at 0
@@ -116,18 +116,23 @@ extern uint8_t flag_help; // help
 extern uint8_t flag_echo; // wether to echo or not
 extern uint8_t flag_ver;  // version
 extern uint8_t flag_raw;  // raw term mode
+extern uint8_t flag_sh;   // shell toggle
 
 // excludes argv[0] on its own, hand it the real argc and argv
 flag_failure manage_flags(const int argc, const char **argv);
 
-// digest buffer
+// form + digest buffer
 #define STDIN_BUF_PAGE_SZ 1024
-uint8_t digest_buf(char *buf, int fd, uint64_t *copy_idx, char **stdin);
+uint8_t form_buf(char *buf, int fd, uint64_t *copy_idx, char **stdin);
 
 // funny!
 #define VERSION "I don't keep the versions of my programs, so uhhh, brain-unfuck 3000!!!\n"
 
 // main function
 void interpreter(const char *file, const uint64_t copy_idx);
+
+// she sells sea shells on the sea floor, but the values of these shells will fall!
+// due to the law of supply and demand, no one wants to buy shells cus' there's loads on the sand!
+int shell(void);
 
 #endif

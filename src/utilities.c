@@ -16,7 +16,9 @@ void usage(const char *invoc, const char *msg) {
         "\t--help    (or) -h: pull up this help message.\n"
         "\t--version (or) -v: show version message. you might not want it :p\n"
         "\t--raw     (or) -r: enable raw terminal mode (user input is immediately processed).\n"
-        "\t--no-echo (or) -E: disable the visibility of user input.\n\n"
+        "\t--no-echo (or) -E: disable the visibility of user input.\n"
+        "\t--signal  (or) -s: enable a shell mode.\n"
+        "\tnote that the shell will process only one buffer at a time, aka, only what you just wrote onto the shell shall be processed.\n"
 
         "%s compiled at %s on %s for %s (OS)\n"
         "FOSS program forever, licensed under the GPL-V3 license.\n"
@@ -131,6 +133,9 @@ flag_failure manage_flags(const int argc, const char **argv) {
             } else if (!strcmp(argv[i] + 2, "no-echo")) {
                 flag_echo = 0;
 
+            } else if (!strcmp(argv[i] + 2, "shell")) {
+                flag_sh   = 1;
+
             } else {
                 ret.argv_idx = i;
                 ret.char_idx = 0;
@@ -162,6 +167,11 @@ flag_failure manage_flags(const int argc, const char **argv) {
 
                         case 'r': {
                             flag_raw  = 1;
+                            break;
+                        }
+
+                        case 's': {
+                            flag_sh    = 1;
                             break;
                         }
                     }
@@ -196,7 +206,7 @@ char *find_closing(char *p) {
 }
 
 // form digest-able buffer
-uint8_t digest_buf(char *buf, int fd, uint64_t *copy_idx, char **stdin) {
+uint8_t form_buf(char *buf, int fd, uint64_t *copy_idx, char **stdin) {
     char ch = 0;
     //uint64_t stdin_allocs = 1;
     uint64_t alloc_cnt = 0;
@@ -240,7 +250,7 @@ uint8_t digest_buf(char *buf, int fd, uint64_t *copy_idx, char **stdin) {
         }
     }
 
-    *stdin = alloc;
+    if (stdin && *stdin) *stdin = alloc;
 
     return 0;
 }

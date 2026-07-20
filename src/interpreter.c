@@ -1,5 +1,7 @@
 #include <unistd.h>
+#ifdef EXTENSIONS
 #include <stdlib.h>
+#endif
 #include <stdio.h>
 #include "os_defs.h"
 #include "defs.h"
