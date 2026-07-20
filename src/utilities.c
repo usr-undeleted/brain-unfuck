@@ -120,10 +120,10 @@ flag_failure manage_flags(const int argc, const char **argv) {
             // strings, add 2 to argv
 
             if        (!strcmp(argv[i] + 2, "help")) {
-                flag_ver  = 1;
+                flag_help = 1;
 
             } else if (!strcmp(argv[i] + 2, "version")) {
-                flag_help = 1;
+                flag_ver  = 1;
 
             } else if (!strcmp(argv[i] + 2, "raw")) {
                 flag_raw  = 1;
