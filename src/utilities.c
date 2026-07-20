@@ -214,7 +214,7 @@ uint8_t form_buf(char *buf, int fd, uint64_t *copy_idx, char **stdin) {
     char *alloc        = NULL;
     if (fd == STDIN_FILENO) {
         // allocate one page at a time
-        alloc = calloc(STDIN_BUF_PAGE_SZ * ++alloc_cnt, sizeof(char));
+        alloc = malloc(STDIN_BUF_PAGE_SZ * ++alloc_cnt);
         if (alloc == NULL) return 1;
     }
 
@@ -249,6 +249,19 @@ uint8_t form_buf(char *buf, int fd, uint64_t *copy_idx, char **stdin) {
 
             }
         }
+    }
+
+    // add null term
+    if (fd == STDIN_FILENO) {
+        if (*copy_idx >= (STDIN_BUF_PAGE_SZ * alloc_cnt)) {
+            alloc = realloc(alloc, (STDIN_BUF_PAGE_SZ * alloc_cnt) + 1);
+            if (alloc == NULL) return 1;
+            alloc[*copy_idx] = '\0';
+        }
+
+    } else {
+        buf[*copy_idx] = '\0';
+
     }
 
     if (stdin && *stdin) *stdin = alloc;

@@ -263,19 +263,25 @@ int main (const volatile int argc, const char *argv[]) {
         fprintf(stderr, "Can't execute (line %ld): ", val.line);
         switch (val.err) {
             case ERR_BUF_TOO_MANY_CLOSE: {
-                fprintf(stderr, "Too many closing brackets.");
+                fprintf(stderr, "Too many closing brackets.\n");
                 DEBUG_ERR_LOC;
                 break;
             }
 
             case ERR_BUF_UNCLOSED: {
-                fprintf(stderr, "Too many opening brackets.");
+                fprintf(stderr, "Too many opening brackets.\n");
                 DEBUG_ERR_LOC;
                 break;
             }
 
             case ERR_BUF_CLOSE_BEYOND_LIMIT: {
-                fprintf(stderr, "Input file has more loops than can be handled. Sorry!");
+                fprintf(stderr, "Input file has more loops than can be handled. Sorry!\n");
+                DEBUG_ERR_LOC;
+                break;
+            }
+
+            default: {
+                fprintf(stderr, "I don't know!!!!!!\n");
                 DEBUG_ERR_LOC;
                 break;
             }
