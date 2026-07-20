@@ -26,7 +26,6 @@ void shell_help(void) {
         "\tclear: clear the terminal.\n\n"
 
         "- return values:\n"
-        "\t129: execution of brainfuck code ended early.\n"
         "\t130: SIGINT on shell.\n\n"
 
         "- brainfuck alphabet: " BF_ALPHABET "\n"
@@ -49,18 +48,21 @@ char *find_arg(const char *ptr, uint64_t idx) {
     return NULL;
 }
 
+volatile sig_atomic_t is_child = 0;
+// incase the user used ctrl+c in forked
+
 // set value 130
 int loop_ret = 0;
 void handle_sigint(int d) {
     (void)d;
-    loop_ret = 130;
-    putchar('\n');
-}
 
-// child exiting
-void child_handle_sigint(int d) {
-    (void)d;
-    exit(0);
+    if (!is_child) {
+        loop_ret = 130;
+        putchar('\n');
+
+    } else {
+        exit(129);
+    }
 }
 
 int shell(void) {
@@ -165,13 +167,8 @@ int shell(void) {
 
             case 0: {
                 // we are the child
-                // set signal interrupter for child
-                s.sa_handler = child_handle_sigint;
-                if (sigaction(SIGINT, &s, NULL) == -1) {
-                    fprintf(stderr, "Failed to set new terminal settings for child: %s\n", strerror(errno));
-                    DEBUG_ERR_LOC;
-                    return ERR_CODE;
-                }
+                // toggle signal thingie
+                is_child = 1;
 
                 interpreter(buf, strlen(buf));
                 putchar('\n');
@@ -184,16 +181,11 @@ int shell(void) {
                 int status;
                 pid_t wait_ret = wait(&status);
                 if (wait_ret >= 0 || WEXITSTATUS(status) == 0) {
-                    // set signal back
-                    s.sa_handler = handle_sigint;
-                    if (sigaction(SIGINT, &s, NULL) == -1) {
-                        fprintf(stderr, "Failed to regain terminal settings: %s\n", strerror(errno));
-                        DEBUG_ERR_LOC;
-                        return ERR_CODE;
-                    }
-
-                    if (WIFEXITED(status)) loop_ret = WEXITSTATUS(status);
+                    // set mode back to parent
+                    is_child = 0;
                 }
+
+                loop_ret = WEXITSTATUS(status);
 
                 break;
             }
