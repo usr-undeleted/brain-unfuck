@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <string.h>
@@ -93,7 +94,14 @@ int shell(void) {
         loop_ret = 0;
 
         // read user input into buffer
-        if (!fgets(buf, sizeof(buf), stdin)) continue;
+        //if (!fgets(buf, sizeof(buf), stdin)) continue;
+        char ch = getchar();
+        uint64_t idx = 0;
+        while (ch != '\n') {
+            if (strchr(BF_ALPHABET, ch)) buf[idx] = ch;
+            idx++;
+            ch = getchar();
+        }
 
         // form_buf() does buffer formation too, trough a fd.
         // i need to separate the digest part from it, making a separate function
